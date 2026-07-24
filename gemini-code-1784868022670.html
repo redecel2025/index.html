@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Ventas Diarias</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            color: #334155;
+        }
+
+        /* Pantalla de Login */
+        #loginScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .login-card {
+            background: white;
+            padding: 35px 30px;
+            border-radius: 16px;
+            text-align: center;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .login-card h2 { margin-top: 0; color: #0f172a; font-size: 1.5rem; }
+        .login-card select, .login-card input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 1rem;
+        }
+        .login-card button:hover { background: #2563eb; }
+
+        .header-container {
+            text-align: center;
+            margin-bottom: 25px;
+            color: white;
+        }
+        
+        h1 { 
+            margin: 0 0 10px 0; 
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #f8fafc;
+        }
+
+        .timestamp-info {
+            font-size: 0.95rem;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.05);
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card { 
+            background: #ffffff; 
+            padding: 24px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); 
+            margin-bottom: 25px; 
+        }
+
+        .summary { 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center;
+            font-size: 1.2em; 
+            font-weight: 600; 
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            color: #e0e7ff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .summary div { text-align: center; }
+        .summary span { 
+            display: block;
+            font-size: 1.6em;
+            font-weight: 700;
+            color: #38bdf8; 
+            margin-top: 4px;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { 
+            padding: 12px 8px; 
+            text-align: center; 
+            border-bottom: 1px solid #f1f5f9; 
+            vertical-align: middle;
+        }
+        th { 
+            background-color: #1e293b; 
+            color: #f8fafc; 
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+        th:first-child { border-top-left-radius: 8px; }
+        th:last-child { border-top-right-radius: 8px; }
+
+        tr.row-disabled { opacity: 0.6; background-color: #f8fafc; }
+        tr.row-active { background-color: #eff6ff; }
+
+        .store-cell {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            padding-left: 5px;
+        }
+
+        .store-info { display: flex; flex-direction: column; align-items: flex-start; }
+
+        .store-logo {
+            height: 38px;
+            width: 70px;
+            object-fit: contain;
+            border-radius: 6px;
+            background-color: #f1f5f9;
+            padding: 2px;
+            border: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .logo-placeholder {
+            height: 38px;
+            width: 70px;
+            border-radius: 6px;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .nombre-sucursal { font-weight: 700; font-size: 0.95rem; padding: 2px 6px; border-radius: 4px; }
+        .color-rio { color: #ea580c; }         
+        .color-shota { color: #d97706; background-color: #fef3c7; }       
+        .color-papis { color: #2563eb; }       
+        .color-rosa { color: #ec4899; }        
+
+        input[type="number"], input[type="text"] { 
+            padding: 7px; 
+            border: 1.5px solid #cbd5e1; 
+            border-radius: 6px; 
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            transition: border-color 0.2s;
+        }
+
+        input[type="number"] { width: 85px; text-align: right; }
+        input[type="text"] { width: 110px; text-align: left; }
+
+        input:disabled {
+            background-color: #f1f5f9;
+            color: #64748b;
+            border-color: #e2e8f0;
+            cursor: not-allowed;
+        }
+
+        .asesor-tag { font-size: 0.75rem; color: #64748b; font-weight: 600; margin-top: 2px; }
+
+        .progress-bar { 
+            background: #e2e8f0; 
+            border-radius: 10px; 
+            height: 16px; 
+            width: 85px; 
+            margin: 0 auto;
+            overflow: hidden; 
+        }
+        .progress-fill { background: #10b981; height: 100%; width: 0%; transition: width 0.3s; }
+        .progress-fill-pasado { background: #f59e0b; height: 100%; width: 0%; transition: width 0.3s; }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .user-badge {
+            background: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .btn-reset { background-color: #ef4444; color: white; }
+        .btn-save { background-color: #10b981; color: white; }
+        .btn-logout { background-color: #64748b; color: white; }
+        .btn-qr { background-color: #8b5cf6; color: white; }
+
+        .history-section { margin-top: 30px; }
+        .history-section h2 { color: #f8fafc; font-size: 1.4rem; margin-bottom: 15px; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; text-align: center; }
+        #qrcode { margin: 20px auto; display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Login -->
+    <div id="loginScreen">
+        <div class="login-card">
+            <h2>🏎️ Acceso al Dashboard</h2>
+            <p style="font-size: 0.85rem; color: #64748b;">Selecciona tu perfil de acceso para continuar.</p>
+            <select id="loginUser">
+                <option value="admin">🔒 Administrador General</option>
+                <optgroup label="Puntos de Venta">
+                    <option value="1">TOSKARIO 2</option>
+                    <option value="2">RIO 1</option>
+                    <option value="3">PAPIS RIO</option>
+                    <option value="4">RIO 6</option>
+                    <option value="5">AMERICAS</option>
+                    <option value="6">TOSKARIO 1</option>
+                    <option value="7">SAN LORENZO</option>
+                    <option value="8">MONUMENTAL</option>
+                    <option value="9">RIO 3</option>
+                    <option value="10">RIO 5</option>
+                    <option value="11">SHOTA RIO</option>
+                    <option value="12">MIEL RIO</option>
+                    <option value="13">COCOS</option>
+                </optgroup>
+            </select>
+            <input type="password" id="loginPass" placeholder="Contraseña">
+            <button onclick="autenticar()">Ingresar</button>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="header-container">
+        <h1>🏎️ Carrera de Ventas Diarias</h1>
+        <div class="timestamp-info">
+            Última actualización: <strong id="lastUpdate">Sincronizando...</strong>
+        </div>
+    </div>
+
+    <div class="card summary">
+        <div>Venta Total<span id="totalVenta">🔒 Admin</span></div>
+        <div>Meta Total<span id="totalMeta">🔒 Admin</span></div>
+        <div>Avance General<span id="totalAvance">0%</span></div>
+    </div>
+
+    <div class="card">
+        <div class="toolbar">
+            <div>
+                <span class="user-badge" id="userBadge">Sesión: Invitado</span>
+                <button class="btn btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+            </div>
+            <div>
+                <button id="btnQR" class="btn btn-qr" style="display:none;" onclick="mostrarQR()">📱 Generar QR</button>
+                <button id="btnSaveCorte" class="btn btn-save" style="display:none;" onclick="guardarCorteDiarioManualmente()">💾 Guardar Corte de Hoy</button>
+                <button id="btnReset" class="btn btn-reset" style="display:none;" onclick="resetearDatos()">Resetear Ventas del Día</button>
+            </div>
+        </div>
+
+        <table id="tablaVentas">
+            <thead>
+                <tr>
+                    <th>Posición</th>
+                    <th style="text-align: left; padding-left: 15px;">Punto de Venta</th>
+                    <th>Asesor / Encargado</th>
+                    <th>Venta Actual ($)</th>
+                    <th>Meta ($) 🔒</th>
+                    <th>% Avance Meta</th>
+                    <th>Carrera Meta</th>
+                    <th>Venta Año Pasado ($) 🔒</th>
+                    <th>% vs Pasado</th>
+                    <th>Carrera vs Pasado</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="history-section">
+        <h2>📊 Acumulado por Mes Calendario (Enero, Febrero, Julio, etc.)</h2>
+        <div class="card">
+            <table class="history-table" id="tablaHistorial">
+                <thead>
+                    <tr>
+                        <th>Mes Calendario</th>
+                        <th>Venta Acumulada del Mes</th>
+                        <th>Meta del Mes</th>
+                        <th>% Cumplimiento Mes</th>
+                        <th>Sucursal Líder del Mes</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="modalQR" class="modal">
+        <div class="modal-content">
+            <h3>Escanea para abrir la gráfica</h3>
+            <div id="qrcode"></div>
+            <button class="btn btn-reset" onclick="cerrarQR()">Cerrar</button>
+        </div>
+    </div>
+
+<script>
+const firebaseURL = "https://carrera-de-ventas-default-rtdb.firebaseio.com/";
+
+const CREDANCIALES = {
+    "admin": { pass: "1234", nombre: "Administrador General", id: "admin" },
+    "1": { pass: "toska2", id: 1 },
+    "2": { pass: "rio1", id: 2 },
+    "3": { pass: "papis", id: 3 },
+    "4": { pass: "rio6", id: 4 },
+    "5": { pass: "americas", id: 5 },
+    "6": { pass: "toska1", id: 6 },
+    "7": { pass: "sanlorenzo", id: 7 },
+    "8": { pass: "monumental", id: 8 },
+    "9": { pass: "rio3", id: 9 },
+    "10": { pass: "rio5", id: 10 },
+    "11": { pass: "shota", id: 11 },
+    "12": { pass: "miel", id: 12 },
+    "13": { pass: "cocos", id: 13 }
+};
+
+let usuarioActual = null;
+let estaEscribiendo = false;
+
+const datosBase = [
+    { id: 1, nombre: "TOSKARIO 2", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "logo toska_2.jpeg" },
+    { id: 2, nombre: "RIO 1", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 3, nombre: "PAPIS RIO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "" },
+    { id: 4, nombre: "RIO 6", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 5, nombre: "AMERICAS", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 6, nombre: "TOSKARIO 1", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "logo toska_2.jpeg" },
+    { id: 7, nombre: "SAN LORENZO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 8, nombre: "MONUMENTAL", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 9, nombre: "RIO 3", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 10, nombre: "RIO 5", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 11, nombre: "SHOTA RIO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "SHOTA_2.jpg" },
+    { id: 12, nombre: "MIEL RIO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "logo miel.jpg" },
+    { id: 13, nombre: "COCOS", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "Copia de logo cocos boutuique.jpeg" }
+];
+
+let sucursales = datosBase;
+let ultimaFecha = "Sin registros hoy";
+let historialCortes = [];
+
+function autenticar() {
+    let userKey = document.getElementById("loginUser").value;
+    let passInput = document.getElementById("loginPass").value.trim();
+
+    let config = CREDANCIALES[userKey];
+    if (config && config.pass === passInput) {
+        usuarioActual = config;
+        document.getElementById("loginScreen").style.display = "none";
+        
+        let targetSucursal = sucursales.find(s => s.id == config.id);
+        let badgeText = config.id === "admin" ? "🔑 Admin General" : "📍 " + (targetSucursal ? targetSucursal.nombre : "Punto de Venta");
+        document.getElementById("userBadge").innerText = "Sesión: " + badgeText;
+
+        if (config.id === "admin") {
+            document.getElementById("btnQR").style.display = "inline-block";
+            document.getElementById("btnSaveCorte").style.display = "inline-block";
+            document.getElementById("btnReset").style.display = "inline-block";
+        } else {
+            document.getElementById("btnQR").style.display = "none";
+            document.getElementById("btnSaveCorte").style.display = "none";
+            document.getElementById("btnReset").style.display = "none";
+        }
+
+        renderTable();
+    } else {
+        alert("Contraseña incorrecta.");
+    }
+}
+
+function cerrarSesion() {
+    usuarioActual = null;
+    document.getElementById("loginPass").value = "";
+    document.getElementById("loginScreen").style.display = "flex";
+}
+
+async function cargarDatosNube() {
+    if (estaEscribiendo) return;
+
+    try {
+        let res = await fetch(`${firebaseURL}datos.json`);
+        let data = await res.json();
+        if (data) {
+            if (data.sucursales) sucursales = data.sucursales;
+            if (data.ultimaFecha) ultimaFecha = data.ultimaFecha;
+            if (data.historialCortes) historialCortes = data.historialCortes;
+            if (usuarioActual) renderTable();
+        } else {
+            guardarDatosNube();
+        }
+    } catch (e) {
+        console.error("Error al cargar de Firebase:", e);
+    }
+}
+
+async function guardarDatosNube() {
+    const ahora = new Date();
+    ultimaFecha = ahora.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) + ' - ' + ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    
+    try {
+        await fetch(`${firebaseURL}datos.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sucursales, ultimaFecha, historialCortes })
+        });
+    } catch (e) {
+        console.error("Error al guardar en Firebase:", e);
+    }
+}
+
+setInterval(cargarDatosNube, 5000);
+
+function getColorClass(nombre) {
+    if (!nombre) return "color-rosa";
+    let n = nombre.trim();
+    if (n === "SHOTA RIO") return "color-shota";
+    if (n === "PAPIS RIO") return "color-papis";
+    if (n.startsWith("RIO ") || n === "AMERICAS" || n === "SAN LORENZO" || n === "MONUMENTAL") return "color-rio";
+    return "color-rosa";
+}
+
+function renderTable() {
+    sucursales.sort((a, b) => b.venta - a.venta);
+    
+    let tbody = document.querySelector("#tablaVentas tbody");
+    tbody.innerHTML = "";
+
+    let totalV = 0, totalM = 0;
+    let esAdmin = usuarioActual && usuarioActual.id === "admin";
+
+    sucursales.forEach((s) => {
+        totalV += s.venta;
+        totalM += s.meta;
+        
+        let avanceMeta = s.meta > 0 ? ((s.venta / s.meta) * 100).toFixed(1) : 0;
+        let avancePasado = s.pasado > 0 ? ((s.venta / s.pasado) * 100).toFixed(1) : 0;
+        let posicion = s.venta > 0 ? sucursales.filter(x => x.venta > s.venta).length + 1 : sucursales.filter(x => x.venta > 0).length + 1;
+
+        let imgTag = s.logo 
+            ? `<img src="${encodeURI(s.logo)}" alt="${s.nombre}" class="store-logo" onerror="this.outerHTML='<div class=\\'logo-placeholder\\'>${s.nombre.substring(0,3)}</div>'">` 
+            : `<div class="logo-placeholder">${s.nombre.substring(0,3)}</div>`;
+
+        let asesorTag = s.asesor ? `<div class="asesor-tag">👤 ${s.asesor}</div>` : '';
+
+        let esSuSucursal = usuarioActual && (esAdmin || usuarioActual.id == s.id);
+        
+        let disableVenta = esSuSucursal ? '' : 'disabled';
+        let disableAsesor = esSuSucursal ? '' : 'disabled';
+        let disableAdminOnly = esAdmin ? '' : 'disabled';
+
+        let rowClass = esSuSucursal ? 'row-active' : 'row-disabled';
+
+        let row = `<tr class="${rowClass}">
+            <td><strong>#${posicion}</strong></td>
+            <td>
+                <div class="store-cell">
+                    ${imgTag}
+                    <div class="store-info">
+                        <span class="nombre-sucursal ${getColorClass(s.nombre)}">${s.nombre}</span>
+                        ${asesorTag}
+                    </div>
+                </div>
+            </td>
+            <td>
+                <input type="text" placeholder="Asesor" value="${s.asesor || ''}" ${disableAsesor} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateAsesor(${s.id}, this.value)">
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.venta}" ${disableVenta} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateValue(${s.id}, 'venta', this.value)">
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.meta}" ${disableAdminOnly} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateValue(${s.id}, 'meta', this.value)">
+            </td>
+            <td><strong>${avanceMeta}%</strong></td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${Math.min(avanceMeta, 100)}%;"></div>
+                </div>
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.pasado}" ${disableAdminOnly} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateValue(${s.id}, 'pasado', this.value)">
+            </td>
+            <td><strong>${avancePasado}%</strong></td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill-pasado" style="width: ${Math.min(avancePasado, 100)}%;"></div>
+                </div>
+            </td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+
+    if (esAdmin) {
+        document.getElementById("totalVenta").innerText = "$" + totalV.toLocaleString();
+        document.getElementById("totalMeta").innerText = "$" + totalM.toLocaleString();
+    } else {
+        document.getElementById("totalVenta").innerText = "🔒 Reservado";
+        document.getElementById("totalMeta").innerText = "🔒 Reservado";
+    }
+    
+    let totalAv = totalM > 0 ? ((totalV / totalM) * 100).toFixed(1) : 0;
+    document.getElementById("totalAvance").innerText = totalAv + "%";
+
+    if (ultimaFecha) {
+        document.getElementById("lastUpdate").innerText = ultimaFecha;
+    }
+    
+    renderHistorial();
+}
+
+// Lógica de Agrupación por Mes Calendario (Enero, Febrero, Julio, etc.)
+function renderHistorial() {
+    let tbody = document.querySelector("#tablaHistorial tbody");
+    tbody.innerHTML = "";
+
+    if (!historialCortes || historialCortes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color: #64748b;">No hay cortes guardados aún.</td></tr>`;
+        return;
+    }
+
+    // Agrupar los cortes por Nombre del Mes + Año (Ej. "Julio 2026")
+    let acumuladoMeses = {};
+
+    historialCortes.forEach(corte => {
+        let claveMes = corte.mesNombre; // Ej: "Julio 2026"
+        if (!acumuladoMeses[claveMes]) {
+            acumuladoMeses[claveMes] = { 
+                venta: 0, 
+                meta: 0, 
+                lideres: {} 
+            };
+        }
+        acumuladoMeses[claveMes].venta += corte.totalVenta;
+        acumuladoMeses[claveMes].meta = Math.max(acumuladoMeses[claveMes].meta, corte.totalMeta);
+
+        // Registro del líder por corte
+        if (corte.lider && corte.lider !== "N/A") {
+            acumuladoMeses[claveMes].lideres[corte.lider] = (acumuladoMeses[claveMes].lideres[corte.lider] || 0) + corte.totalVenta;
+        }
+    });
+
+    // Renderizar resumen mensual
+    Object.keys(acumuladoMeses).reverse().forEach(mesKey => {
+        let datos = acumuladoMeses[mesKey];
+        let avanceMes = datos.meta > 0 ? ((datos.venta / datos.meta) * 100).toFixed(1) : 0;
+        let esAdmin = usuarioActual && usuarioActual.id === "admin";
+
+        // Determinar qué sucursal ha vendido más en el mes acumulado
+        let mejorLider = "N/A";
+        let maxVentaLider = 0;
+        for (let store in datos.lideres) {
+            if (datos.lideres[store] > maxVentaLider) {
+                maxVentaLider = datos.lideres[store];
+                mejorLider = store;
+            }
+        }
+
+        let row = `<tr style="background-color: #f8fafc; font-weight: bold;">
+            <td>📅 ${mesKey}</td>
+            <td>${esAdmin ? '$' + datos.venta.toLocaleString() : '🔒 Reservado'}</td>
+            <td>${esAdmin ? '$' + datos.meta.toLocaleString() : '🔒 Reservado'}</td>
+            <td><strong>${avanceMes}%</strong></td>
+            <td><span class="nombre-sucursal ${getColorClass(mejorLider)}">${mejorLider}</span></td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function updateValue(id, field, value) {
+    let item = sucursales.find(s => s.id === id);
+    if (item) {
+        item[field] = parseFloat(value) || 0;
+        guardarDatosNube();
+        renderTable();
+    }
+}
+
+function updateAsesor(id, value) {
+    let item = sucursales.find(s => s.id === id);
+    if (item) {
+        item.asesor = value.trim();
+        guardarDatosNube();
+        renderTable();
+    }
+}
+
+function guardarCorteDiarioManualmente() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+
+    let totalV = sucursales.reduce((acc, s) => acc + s.venta, 0);
+    let totalM = sucursales.reduce((acc, s) => acc + s.meta, 0);
+    let avance = totalM > 0 ? ((totalV / totalM) * 100).toFixed(1) : 0;
+    
+    let ordenadas = [...sucursales].sort((a, b) => b.venta - a.venta);
+    let lider = ordenadas[0] && ordenadas[0].venta > 0 ? ordenadas[0].nombre : "N/A";
+
+    const fechaObj = new Date();
+    
+    // Obtener formato de mes calendario completo (ej. "Julio 2026")
+    const nombreMes = fechaObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const mesFormateado = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+    
+    const fechaClave = fechaObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    let detalleVentasDiarias = {};
+    sucursales.forEach(s => {
+        detalleVentasDiarias[s.nombre] = s.venta;
+    });
+
+    let existeHoy = historialCortes.find(h => h.fecha === fechaClave);
+    if (existeHoy) {
+        existeHoy.totalVenta = totalV;
+        existeHoy.totalMeta = totalM;
+        existeHoy.avance = avance;
+        existeHoy.lider = lider;
+        existeHoy.desglose = detalleVentasDiarias;
+        existeHoy.mesNombre = mesFormateado;
+    } else {
+        historialCortes.push({
+            fecha: fechaClave,
+            mesNombre: mesFormateado,
+            totalVenta: totalV,
+            totalMeta: totalM,
+            avance: avance,
+            lider: lider,
+            desglose: detalleVentasDiarias
+        });
+    }
+
+    guardarDatosNube();
+    alert(`¡Corte del día guardado con éxito y asignado al mes de ${mesFormateado}!`);
+    renderHistorial();
+}
+
+function resetearDatos() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+    
+    if (confirm("¿Deseas guardar automáticamente el corte de hoy y reiniciar las ventas diarias a $0?")) {
+        guardarCorteDiarioManualmente();
+        sucursales.forEach(s => { s.venta = 0; });
+        guardarDatosNube();
+        renderTable();
+    }
+}
+
+function mostrarQR() {
+    let targetURL = window.location.href;
+    const qrContainer = document.getElementById("qrcode");
+    qrContainer.innerHTML = ""; 
+    
+    new QRCode(qrContainer, { text: targetURL, width: 180, height: 180 });
+    document.getElementById("modalQR").style.display = "flex";
+}
+
+function cerrarQR() {
+    document.getElementById("modalQR").style.display = "none";
+}
+
+cargarDatosNube();
+</script>
+</body>
+</html>
