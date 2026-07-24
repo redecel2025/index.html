@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Ventas Diarias</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #334155;
+        }
+
+        /* Login Screen */
+        #loginScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .login-card {
+            background: white;
+            padding: 35px 30px;
+            border-radius: 16px;
+            text-align: center;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .login-card h2 { margin-top: 0; color: #0f172a; font-size: 1.5rem; }
+        .login-card select, .login-card input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 1rem;
+        }
+        .login-card button:hover { background: #2563eb; }
+
+        .header-container { text-align: center; margin-bottom: 20px; color: white; }
+        h1 { margin: 0 0 10px 0; font-size: 2rem; font-weight: 700; color: #f8fafc; }
+
+        .timestamp-info {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.05);
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Sistema de Pestañas */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { 
+            background: #ffffff; 
+            padding: 20px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); 
+            margin-bottom: 20px; 
+        }
+
+        .summary { 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center;
+            font-size: 1.1em; 
+            font-weight: 600; 
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            color: #e0e7ff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .summary div { text-align: center; }
+        .summary span { display: block; font-size: 1.5em; font-weight: 700; color: #38bdf8; margin-top: 4px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 6px; text-align: center; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        th { background-color: #1e293b; color: #f8fafc; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        tr.row-disabled { opacity: 0.6; background-color: #f8fafc; }
+        tr.row-active { background-color: #eff6ff; }
+
+        .store-cell { display: flex; align-items: center; gap: 10px; }
+        .store-info { display: flex; flex-direction: column; align-items: flex-start; }
+        .store-logo { height: 35px; width: 65px; object-fit: contain; border-radius: 6px; background-color: #f1f5f9; padding: 2px; border: 1px solid #e2e8f0; }
+        .logo-placeholder { height: 35px; width: 65px; border-radius: 6px; background-color: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #64748b; font-weight: bold; }
+
+        .nombre-sucursal { font-weight: 700; font-size: 0.9rem; padding: 2px 6px; border-radius: 4px; }
+        .color-rio { color: #ea580c; }         
+        .color-shota { color: #d97706; background-color: #fef3c7; }       
+        .color-papis { color: #2563eb; }       
+        .color-rosa { color: #ec4899; }        
+
+        input[type="number"], input[type="text"], select { 
+            padding: 6px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.88rem; font-weight: 600; color: #1e293b; 
+        }
+        input[type="number"] { width: 80px; text-align: right; }
+        input[type="text"] { width: 100px; text-align: left; }
+        input:disabled { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; }
+
+        .asesor-tag { font-size: 0.75rem; color: #64748b; font-weight: 600; margin-top: 2px; }
+
+        .progress-bar { background: #e2e8f0; border-radius: 10px; height: 14px; width: 75px; margin: 0 auto; overflow: hidden; }
+        .progress-fill { background: #10b981; height: 100%; width: 0%; }
+        .progress-fill-pasado { background: #f59e0b; height: 100%; width: 0%; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+        .user-badge { background: #e2e8f0; padding: 6px 12px; border-radius: 8px; font-weight: 700; color: #1e293b; font-size: 0.85rem; }
+
+        .btn { border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .btn-reset { background-color: #ef4444; color: white; }
+        .btn-save { background-color: #10b981; color: white; }
+        .btn-logout { background-color: #64748b; color: white; }
+        .btn-qr { background-color: #8b5cf6; color: white; }
+        .btn-delete { background-color: #dc2626; color: white; padding: 5px 10px; font-size: 0.75rem; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-delete:hover { background-color: #b91c1c; }
+
+        .table-responsive { overflow-x: auto; }
+        .pass-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-top: 15px; }
+        .pass-card { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: left; }
+        .pass-card label { display: block; font-size: 0.8rem; font-weight: bold; color: #475569; margin-bottom: 4px; }
+        .pass-card input { width: 100%; box-sizing: border-box; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; text-align: center; }
+        #qrcode { margin: 20px auto; display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Login -->
+    <div id="loginScreen">
+        <div class="login-card">
+            <h2>🏎️ Acceso al Dashboard</h2>
+            <p style="font-size: 0.85rem; color: #64748b;">Selecciona tu usuario e ingresa tu contraseña.</p>
+            <select id="loginUser">
+                <option value="admin">🔒 Administrador General</option>
+                <optgroup label="Puntos de Venta">
+                    <option value="1">TOSKARIO 2</option>
+                    <option value="2">RIO 1</option>
+                    <option value="3">PAPIS RIO</option>
+                    <option value="4">RIO 6</option>
+                    <option value="5">AMERICAS</option>
+                    <option value="6">TOSKARIO 1</option>
+                    <option value="7">SAN LORENZO</option>
+                    <option value="8">MONUMENTAL</option>
+                    <option value="9">RIO 3</option>
+                    <option value="10">RIO 5</option>
+                    <option value="11">SHOTA RIO</option>
+                    <option value="12">MIEL RIO</option>
+                    <option value="13">COCOS</option>
+                </optgroup>
+            </select>
+            <input type="password" id="loginPass" placeholder="Contraseña">
+            <button onclick="autenticar()">Ingresar</button>
+        </div>
+    </div>
+
+    <!-- Header y Navegación de Pestañas -->
+    <div class="header-container">
+        <h1>🏎️ Carrera de Ventas Diarias</h1>
+        <div class="timestamp-info">Última actualización: <strong id="lastUpdate">Sincronizando...</strong></div>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="cambiarPestana('tab-carrera')">🏎️ Carrera del Día</button>
+        <button id="tabBtnHistorico" class="tab-btn" style="display:none;" onclick="cambiarPestana('tab-historico')">📅 Histórico por Punto de Venta (Admin)</button>
+        <button id="tabBtnPass" class="tab-btn" style="display:none;" onclick="cambiarPestana('tab-passwords')">🔑 Configurar Contraseñas (Admin)</button>
+    </div>
+
+    <!-- PESTAÑA 1: CARRERA DEL DÍA -->
+    <div id="tab-carrera" class="tab-content active">
+        <div class="card summary">
+            <div>Venta Total<span id="totalVenta">🔒 Admin</span></div>
+            <div>Meta Total<span id="totalMeta">🔒 Admin</span></div>
+            <div>Avance General<span id="totalAvance">0%</span></div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <div>
+                    <span class="user-badge" id="userBadge">Sesión: Invitado</span>
+                    <button class="btn btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+                </div>
+                <div>
+                    <button id="btnQR" class="btn btn-qr" style="display:none;" onclick="mostrarQR()">📱 Generar QR</button>
+                    <button id="btnReset" class="btn btn-reset" style="display:none;" onclick="resetearDatosManualmente()">Reiniciar Tablero ($0)</button>
+                </div>
+            </div>
+
+            <table id="tablaVentas">
+                <thead>
+                    <tr>
+                        <th>Posición</th>
+                        <th style="text-align: left; padding-left: 15px;">Punto de Venta</th>
+                        <th>Asesor / Encargado</th>
+                        <th>Venta Actual ($)</th>
+                        <th>Meta ($) 🔒</th>
+                        <th>% Avance</th>
+                        <th>Carrera Meta</th>
+                        <th>Año Pasado ($) 🔒</th>
+                        <th>% vs Pasado</th>
+                        <th>Carrera vs Pasado</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: HISTÓRICO DIARIO DETALLADO (SOLO ADMIN) -->
+    <div id="tab-historico" class="tab-content">
+        <div class="card">
+            <div class="toolbar">
+                <h2>📅 Registro Diario por Punto de Venta</h2>
+                <div>
+                    <label style="font-weight: bold; margin-right: 8px;">Seleccionar Mes Calendario:</label>
+                    <select id="selectFiltroMes" onchange="renderHistóricoDetallado()"></select>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: #64748b;">Los cortes de venta diaria se registran en automático. Puedes borrar cualquier fecha específica si fue guardada por error.</p>
+            <div class="table-responsive">
+                <table id="tablaHistoricoDetallado">
+                    <thead>
+                        <tr id="headersHistorico">
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 3: CONFIGURACIÓN DE CONTRASEÑAS (SOLO ADMIN) -->
+    <div id="tab-passwords" class="tab-content">
+        <div class="card">
+            <h2>🔑 Modificar Contraseñas de Acceso</h2>
+            <p style="font-size: 0.85rem; color: #64748b;">Cambia las contraseñas individuales de cada punto de venta y haz clic en guardar para actualizar los permisos en la nube.</p>
+            <div id="passwordsContainer" class="pass-grid"></div>
+            <br>
+            <button class="btn btn-save" style="font-size: 1rem; padding: 10px 20px;" onclick="guardarNuevasContrasenas()">💾 Guardar Nuevas Contraseñas</button>
+        </div>
+    </div>
+
+    <div id="modalQR" class="modal">
+        <div class="modal-content">
+            <h3>Escanea para abrir la gráfica</h3>
+            <div id="qrcode"></div>
+            <button class="btn btn-reset" onclick="cerrarQR()">Cerrar</button>
+        </div>
+    </div>
+
+<script>
+const firebaseURL = "https://carrera-de-ventas-default-rtdb.firebaseio.com/";
+
+let credenciales = {
+    "admin": { pass: "1234", nombre: "Administrador General", id: "admin" },
+    "1": { pass: "toska2", id: 1 },
+    "2": { pass: "rio1", id: 2 },
+    "3": { pass: "papis", id: 3 },
+    "4": { pass: "rio6", id: 4 },
+    "5": { pass: "americas", id: 5 },
+    "6": { pass: "toska1", id: 6 },
+    "7": { pass: "sanlorenzo", id: 7 },
+    "8": { pass: "monumental", id: 8 },
+    "9": { pass: "rio3", id: 9 },
+    "10": { pass: "rio5", id: 10 },
+    "11": { pass: "shota", id: 11 },
+    "12": { pass: "miel", id: 12 },
+    "13": { pass: "cocos", id: 13 }
+};
+
+let usuarioActual = null;
+let estaEscribiendo = false;
+
+const datosBase = [
+    { id: 1, nombre: "TOSKARIO 2", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "logo toska_2.jpeg" },
+    { id: 2, nombre: "RIO 1", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 3, nombre: "PAPIS RIO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "" },
+    { id: 4, nombre: "RIO 6", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 5, nombre: "AMERICAS", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 6, nombre: "TOSKARIO 1", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "logo toska_2.jpeg" },
+    { id: 7, nombre: "SAN LORENZO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 8, nombre: "MONUMENTAL", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 9, nombre: "RIO 3", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 10, nombre: "RIO 5", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "CK contorno blanco.png" },
+    { id: 11, nombre: "SHOTA RIO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "SHOTA_2.jpg" },
+    { id: 12, nombre: "MIEL RIO", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "logo miel.jpg" },
+    { id: 13, nombre: "COCOS", asesor: "", venta: 0, meta: 0, pasado: 0, logo: "Copia de logo cocos boutuique.jpeg" }
+];
+
+let sucursales = datosBase;
+let ultimaFecha = "";
+let fechaUltimoCierre = "";
+let historialCortes = [];
+let bloqueoAutoGuardado = false; // Evita que se vuelva a re-generar automáticamente un día recién borrado
+
+function cambiarPestana(idTab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+
+    event.target.classList.add('active');
+    document.getElementById(idTab).classList.add('active');
+
+    if (idTab === 'tab-historico') renderHistóricoDetallado();
+    if (idTab === 'tab-passwords') renderFormularioPasswords();
+}
+
+function autenticar() {
+    let userKey = document.getElementById("loginUser").value;
+    let passInput = document.getElementById("loginPass").value.trim();
+
+    let config = credenciales[userKey];
+    if (config && config.pass === passInput) {
+        usuarioActual = config;
+        document.getElementById("loginScreen").style.display = "none";
+        
+        let targetSucursal = sucursales.find(s => s.id == config.id);
+        let badgeText = config.id === "admin" ? "🔑 Admin General" : "📍 " + (targetSucursal ? targetSucursal.nombre : "Punto de Venta");
+        document.getElementById("userBadge").innerText = "Sesión: " + badgeText;
+
+        if (config.id === "admin") {
+            document.getElementById("btnQR").style.display = "inline-block";
+            document.getElementById("btnReset").style.display = "inline-block";
+            document.getElementById("tabBtnHistorico").style.display = "inline-block";
+            document.getElementById("tabBtnPass").style.display = "inline-block";
+        } else {
+            document.getElementById("btnQR").style.display = "none";
+            document.getElementById("btnReset").style.display = "none";
+            document.getElementById("tabBtnHistorico").style.display = "none";
+            document.getElementById("tabBtnPass").style.display = "none";
+        }
+
+        renderTable();
+    } else {
+        alert("Contraseña incorrecta.");
+    }
+}
+
+function cerrarSesion() {
+    usuarioActual = null;
+    document.getElementById("loginPass").value = "";
+    document.getElementById("loginScreen").style.display = "flex";
+    cambiarPestana('tab-carrera');
+}
+
+function formatearFechaEstandar(fStr) {
+    if(!fStr) return "";
+    let partes = fStr.trim().split('/');
+    if(partes.length !== 3) return fStr;
+    let dia = partes[0].padStart(2, '0');
+    let mes = partes[1].padStart(2, '0');
+    let anio = partes[2];
+    return `${dia}/${mes}/${anio}`;
+}
+
+function verificarYGuardarCorteAutomatico() {
+    if (bloqueoAutoGuardado) return;
+
+    const ahora = new Date();
+    const fechaHoy = ahora.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    if (fechaUltimoCierre && fechaUltimoCierre !== fechaHoy) {
+        sucursales.forEach(s => { s.venta = 0; });
+    }
+
+    fechaUltimoCierre = fechaHoy;
+
+    const nombreMes = ahora.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    const mesFormateado = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+
+    let totalV = sucursales.reduce((acc, s) => acc + s.venta, 0);
+    let totalM = sucursales.reduce((acc, s) => acc + s.meta, 0);
+    let avance = totalM > 0 ? ((totalV / totalM) * 100).toFixed(1) : 0;
+    
+    let ordenadas = [...sucursales].sort((a, b) => b.venta - a.venta);
+    let lider = ordenadas[0] && ordenadas[0].venta > 0 ? ordenadas[0].nombre : "N/A";
+
+    let detalleVentasDiarias = {};
+    sucursales.forEach(s => {
+        detalleVentasDiarias[s.nombre] = s.venta;
+    });
+
+    let fechaHoyStd = formatearFechaEstandar(fechaHoy);
+    let existeHoy = historialCortes.find(h => formatearFechaEstandar(h.fecha) === fechaHoyStd);
+
+    if (existeHoy) {
+        existeHoy.totalVenta = totalV;
+        existeHoy.totalMeta = totalM;
+        existeHoy.avance = avance;
+        existeHoy.lider = lider;
+        existeHoy.desglose = detalleVentasDiarias;
+        existeHoy.mesNombre = mesFormateado;
+    } else {
+        historialCortes.push({
+            fecha: fechaHoy,
+            mesNombre: mesFormateado,
+            totalVenta: totalV,
+            totalMeta: totalM,
+            avance: avance,
+            lider: lider,
+            desglose: detalleVentasDiarias
+        });
+    }
+}
+
+async function cargarDatosNube() {
+    if (estaEscribiendo) return;
+
+    try {
+        let res = await fetch(`${firebaseURL}datos.json`);
+        let data = await res.json();
+        if (data) {
+            if (data.sucursales) sucursales = data.sucursales;
+            if (data.ultimaFecha) ultimaFecha = data.ultimaFecha;
+            if (data.fechaUltimoCierre) fechaUltimoCierre = data.fechaUltimoCierre;
+            if (data.historialCortes) historialCortes = data.historialCortes;
+            if (data.credenciales) credenciales = data.credenciales;
+
+            verificarYGuardarCorteAutomatico();
+            if (usuarioActual) renderTable();
+        } else {
+            guardarDatosNube();
+        }
+    } catch (e) {
+        console.error("Error al cargar de Firebase:", e);
+    }
+}
+
+async function guardarDatosNube() {
+    const ahora = new Date();
+    ultimaFecha = ahora.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) + ' - ' + ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    
+    verificarYGuardarCorteAutomatico();
+
+    try {
+        await fetch(`${firebaseURL}datos.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sucursales, ultimaFecha, fechaUltimoCierre, historialCortes, credenciales })
+        });
+    } catch (e) {
+        console.error("Error al guardar en Firebase:", e);
+    }
+}
+
+setInterval(cargarDatosNube, 5000);
+
+function getColorClass(nombre) {
+    if (!nombre) return "color-rosa";
+    let n = nombre.trim();
+    if (n === "SHOTA RIO") return "color-shota";
+    if (n === "PAPIS RIO") return "color-papis";
+    if (n.startsWith("RIO ") || n === "AMERICAS" || n === "SAN LORENZO" || n === "MONUMENTAL") return "color-rio";
+    return "color-rosa";
+}
+
+function renderTable() {
+    sucursales.sort((a, b) => b.venta - a.venta);
+    
+    let tbody = document.querySelector("#tablaVentas tbody");
+    tbody.innerHTML = "";
+
+    let totalV = 0, totalM = 0;
+    let esAdmin = usuarioActual && usuarioActual.id === "admin";
+
+    sucursales.forEach((s) => {
+        totalV += s.venta;
+        totalM += s.meta;
+        
+        let avanceMeta = s.meta > 0 ? ((s.venta / s.meta) * 100).toFixed(1) : 0;
+        let avancePasado = s.pasado > 0 ? ((s.venta / s.pasado) * 100).toFixed(1) : 0;
+        let posicion = s.venta > 0 ? sucursales.filter(x => x.venta > s.venta).length + 1 : sucursales.filter(x => x.venta > 0).length + 1;
+
+        let imgTag = s.logo 
+            ? `<img src="${encodeURI(s.logo)}" alt="${s.nombre}" class="store-logo" onerror="this.outerHTML='<div class=\\'logo-placeholder\\'>${s.nombre.substring(0,3)}</div>'">` 
+            : `<div class="logo-placeholder">${s.nombre.substring(0,3)}</div>`;
+
+        let asesorTag = s.asesor ? `<div class="asesor-tag">👤 ${s.asesor}</div>` : '';
+
+        let esSuSucursal = usuarioActual && (esAdmin || usuarioActual.id == s.id);
+        
+        let disableVenta = esSuSucursal ? '' : 'disabled';
+        let disableAsesor = esSuSucursal ? '' : 'disabled';
+        let disableAdminOnly = esAdmin ? '' : 'disabled';
+
+        let rowClass = esSuSucursal ? 'row-active' : 'row-disabled';
+
+        let row = `<tr class="${rowClass}">
+            <td><strong>#${posicion}</strong></td>
+            <td>
+                <div class="store-cell">
+                    ${imgTag}
+                    <div class="store-info">
+                        <span class="nombre-sucursal ${getColorClass(s.nombre)}">${s.nombre}</span>
+                        ${asesorTag}
+                    </div>
+                </div>
+            </td>
+            <td>
+                <input type="text" placeholder="Asesor" value="${s.asesor || ''}" ${disableAsesor} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateAsesor(${s.id}, this.value)">
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.venta}" ${disableVenta} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateValue(${s.id}, 'venta', this.value)">
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.meta}" ${disableAdminOnly} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateValue(${s.id}, 'meta', this.value)">
+            </td>
+            <td><strong>${avanceMeta}%</strong></td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${Math.min(avanceMeta, 100)}%;"></div>
+                </div>
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.pasado}" ${disableAdminOnly} 
+                    onfocus="estaEscribiendo = true" onblur="estaEscribiendo = false" 
+                    onchange="updateValue(${s.id}, 'pasado', this.value)">
+            </td>
+            <td><strong>${avancePasado}%</strong></td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill-pasado" style="width: ${Math.min(avancePasado, 100)}%;"></div>
+                </div>
+            </td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+
+    if (esAdmin) {
+        document.getElementById("totalVenta").innerText = "$" + totalV.toLocaleString();
+        document.getElementById("totalMeta").innerText = "$" + totalM.toLocaleString();
+    } else {
+        document.getElementById("totalVenta").innerText = "🔒 Reservado";
+        document.getElementById("totalMeta").innerText = "🔒 Reservado";
+    }
+    
+    let totalAv = totalM > 0 ? ((totalV / totalM) * 100).toFixed(1) : 0;
+    document.getElementById("totalAvance").innerText = totalAv + "%";
+
+    if (ultimaFecha) {
+        document.getElementById("lastUpdate").innerText = ultimaFecha;
+    }
+}
+
+function renderHistóricoDetallado() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+
+    let selectMes = document.getElementById("selectFiltroMes");
+    let mesSeleccionado = selectMes.value;
+
+    let mesesUnicos = [...new Set(historialCortes.map(h => h.mesNombre))];
+    
+    if (mesesUnicos.length === 0) {
+        let actual = new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        actual = actual.charAt(0).toUpperCase() + actual.slice(1);
+        mesesUnicos.push(actual);
+    }
+
+    selectMes.innerHTML = "";
+    mesesUnicos.reverse().forEach(mes => {
+        selectMes.innerHTML += `<option value="${mes}" ${mes === mesSeleccionado ? 'selected' : ''}>${mes}</option>`;
+    });
+
+    mesSeleccionado = selectMes.value;
+
+    let thead = document.getElementById("headersHistorico");
+    thead.innerHTML = `<th>Fecha</th>`;
+    datosBase.forEach(s => {
+        thead.innerHTML += `<th>${s.nombre}</th>`;
+    });
+    thead.innerHTML += `<th style="background:#0f172a;">TOTAL DÍA</th>`;
+    thead.innerHTML += `<th style="background:#0f172a;">ACCIÓN</th>`;
+
+    let tbody = document.querySelector("#tablaHistoricoDetallado tbody");
+    tbody.innerHTML = "";
+
+    let cortesDelMes = historialCortes.filter(h => h.mesNombre === mesSeleccionado);
+
+    if (cortesDelMes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${datosBase.length + 3}" style="color:#64748b; padding:20px;">No hay cierres guardados para el mes de ${mesSeleccionado}.</td></tr>`;
+        return;
+    }
+
+    let sumaTotalMes = 0;
+    let sumaPorPunto = {};
+    datosBase.forEach(s => sumaPorPunto[s.nombre] = 0);
+
+    cortesDelMes.forEach(corte => {
+        let row = `<tr><td><strong>${corte.fecha}</strong></td>`;
+        let totalDia = 0;
+
+        datosBase.forEach(s => {
+            let ventaDiaTienda = (corte.desglose && corte.desglose[s.nombre]) ? corte.desglose[s.nombre] : 0;
+            row += `<td>$${ventaDiaTienda.toLocaleString()}</td>`;
+            totalDia += ventaDiaTienda;
+            sumaPorPunto[s.nombre] += ventaDiaTienda;
+        });
+
+        row += `<td style="font-weight:bold; background:#f1f5f9;">$${totalDia.toLocaleString()}</td>`;
+        row += `<td><button class="btn-delete" onclick="borrarCorteFecha('${corte.fecha}')">🗑️ Borrar</button></td></tr>`;
+        tbody.innerHTML += row;
+        sumaTotalMes += totalDia;
+    });
+
+    let totalRow = `<tr style="background-color: #312e81; color: white; font-weight: bold;">
+        <td>TOTAL ${mesSeleccionado.toUpperCase()}</td>`;
+    datosBase.forEach(s => {
+        totalRow += `<td>$${sumaPorPunto[s.nombre].toLocaleString()}</td>`;
+    });
+    totalRow += `<td style="background-color: #1e1b4b; color: #38bdf8;">$${sumaTotalMes.toLocaleString()}</td>`;
+    totalRow += `<td>---</td></tr>`;
+    tbody.innerHTML += totalRow;
+}
+
+// FUNCIÓN CORREGIDA DE BORRADO
+async function borrarCorteFecha(fechaTarget) {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+
+    if (confirm(`¿Estás seguro de eliminar el registro de la fecha "${fechaTarget}"?`)) {
+        let targetStd = formatearFechaEstandar(fechaTarget);
+        
+        // Bloqueamos el auto-guardado si coincide con el día de hoy
+        const hoyStd = formatearFechaEstandar(new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }));
+        if (targetStd === hoyStd) {
+            bloqueoAutoGuardado = true;
+        }
+
+        // Filtramos por coincidencia estricta de fecha
+        historialCortes = historialCortes.filter(h => formatearFechaEstandar(h.fecha) !== targetStd);
+
+        // Guardamos directamente en Firebase evitando que se vuelva a reescribir
+        try {
+            const ahora = new Date();
+            ultimaFecha = ahora.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) + ' - ' + ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            await fetch(`${firebaseURL}datos.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sucursales, ultimaFecha, fechaUltimoCierre, historialCortes, credenciales })
+            });
+
+            renderHistóricoDetallado();
+            alert(`¡Registro del día ${fechaTarget} borrado exitosamente!`);
+        } catch (e) {
+            console.error("Error al borrar en Firebase:", e);
+            alert("Ocurrió un error al intentar eliminar el registro de la base de datos.");
+        }
+    }
+}
+
+function renderFormularioPasswords() {
+    let container = document.getElementById("passwordsContainer");
+    container.innerHTML = "";
+
+    container.innerHTML += `<div class="pass-card" style="background: #eff6ff; border-color: #3b82f6;">
+        <label style="color:#1d4ed8;">🔒 Admin General</label>
+        <input type="text" id="pass_admin" value="${credenciales['admin'].pass}">
+    </div>`;
+
+    datosBase.forEach(s => {
+        let actualPass = credenciales[s.id] ? credenciales[s.id].pass : "";
+        container.innerHTML += `<div class="pass-card">
+            <label>📍 ${s.nombre}</label>
+            <input type="text" id="pass_${s.id}" value="${actualPass}">
+        </div>`;
+    });
+}
+
+function guardarNuevasContrasenas() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+
+    credenciales['admin'].pass = document.getElementById("pass_admin").value.trim();
+
+    datosBase.forEach(s => {
+        let val = document.getElementById(`pass_${s.id}`).value.trim();
+        if (!credenciales[s.id]) credenciales[s.id] = { id: s.id };
+        credenciales[s.id].pass = val;
+    });
+
+    guardarDatosNube();
+    alert("¡Todas las contraseñas han sido actualizadas!");
+}
+
+function updateValue(id, field, value) {
+    let item = sucursales.find(s => s.id === id);
+    if (item) {
+        item[field] = parseFloat(value) || 0;
+        guardarDatosNube();
+        renderTable();
+    }
+}
+
+function updateAsesor(id, value) {
+    let item = sucursales.find(s => s.id === id);
+    if (item) {
+        item.asesor = value.trim();
+        guardarDatosNube();
+        renderTable();
+    }
+}
+
+function resetearDatosManualmente() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+    
+    if (confirm("¿Deseas poner las ventas del tablero en $0? (Las metas, año pasado y asesores se mantendrán intactos)")) {
+        sucursales.forEach(s => { s.venta = 0; });
+        guardarDatosNube();
+        renderTable();
+    }
+}
+
+function mostrarQR() {
+    let targetURL = window.location.href;
+    const qrContainer = document.getElementById("qrcode");
+    qrContainer.innerHTML = ""; 
+    
+    new QRCode(qrContainer, { text: targetURL, width: 180, height: 180 });
+    document.getElementById("modalQR").style.display = "flex";
+}
+
+function cerrarQR() {
+    document.getElementById("modalQR").style.display = "none";
+}
+
+cargarDatosNube();
+</script>
+</body>
+</html>
