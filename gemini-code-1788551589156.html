@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celular Kits - Dashboard General & Radio Online</title>
+    
+    <!-- Librerías Firebase, QR y HTML2Canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+        :root {
+            --ck-orange: #ff6600;
+            --ck-orange-hover: #e05500;
+            --ck-dark-bg: #0b0f19;
+            --ck-card-bg: #161f30;
+            --ck-border: #243147;
+            --ck-text: #f8fafc;
+            --ck-text-muted: #94a3b8;
+            --payjoy-pink: #ec4899;
+            --green-success: #10b981;
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: radial-gradient(circle at top, #1a263c 0%, var(--ck-dark-bg) 100%); 
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: var(--ck-text);
+        }
+
+        #loginScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 15, 25, 0.96);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .login-card {
+            background: var(--ck-card-bg);
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid var(--ck-border);
+            box-shadow: 0 25px 50px -12px rgba(255, 102, 0, 0.25);
+        }
+        .login-card h2 { margin: 10px 0 5px 0; color: var(--ck-text); font-size: 1.6rem; font-weight: 800; }
+        .login-card p { font-size: 0.85rem; color: var(--ck-text-muted); margin-bottom: 20px; }
+        .login-card select, .login-card input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid var(--ck-border);
+            border-radius: 10px;
+            background: #0d1322;
+            color: var(--ck-text);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--ck-orange), #ff8533);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 12px;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(255, 102, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .header-container { text-align: center; margin-bottom: 25px; }
+        .brand-logo-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .brand-logo-title img { height: 48px; object-fit: contain; }
+        h1 { margin: 0; font-size: 2.2rem; font-weight: 800; color: var(--ck-text); letter-spacing: -0.5px; }
+        h1 span { color: var(--ck-orange); }
+
+        .timestamp-info {
+            font-size: 0.85rem;
+            color: var(--ck-text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--ck-border);
+        }
+
+        .radio-player-bar {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--ck-orange);
+            border-radius: 16px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+            box-shadow: 0 8px 25px rgba(255, 102, 0, 0.15);
+        }
+        .radio-info { display: flex; align-items: center; gap: 10px; }
+        .radio-pulse {
+            width: 12px; height: 12px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .radio-pulse.playing {
+            background-color: #10b981;
+            box-shadow: 0 0 12px #10b981;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .radio-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .btn-play {
+            background: var(--ck-orange);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-play:hover { background: var(--ck-orange-hover); }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: var(--ck-card-bg);
+            color: var(--ck-text-muted);
+            border: 1px solid var(--ck-border);
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--ck-orange), #ff8533);
+            color: white;
+            border-color: var(--ck-orange);
+            box-shadow: 0 4px 15px rgba(255, 102, 0, 0.35);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { 
+            background: var(--ck-card-bg); 
+            padding: 24px; 
+            border-radius: 20px; 
+            border: 1px solid var(--ck-border);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+            margin-bottom: 25px; 
+        }
+
+        .summary { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            background: linear-gradient(135deg, #131c2e 0%, #0d1322 100%);
+            border: 1px solid rgba(255, 102, 0, 0.2);
+        }
+        .summary-box {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .summary-box label { font-size: 0.8rem; color: var(--ck-text-muted); font-weight: 700; text-transform: uppercase; }
+        .summary-box span { display: block; font-size: 1.6em; font-weight: 800; color: #ff9933; margin-top: 6px; }
+
+        .bono-card {
+            background: linear-gradient(135deg, #0d233a 0%, #101e36 100%);
+            border: 1px solid #1d4ed8;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        .bono-card h3 { margin: 0 0 10px 0; color: #60a5fa; font-size: 1.1rem; display: flex; justify-content: space-between; }
+        .bono-status { font-weight: 800; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; }
+        .bono-pendiente { background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.4); }
+        .bono-falta-pj { background: rgba(236, 72, 153, 0.2); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.4); }
+        .bono-alcanzado { background: rgba(16, 185, 129, 0.2); color: #4ade80; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+        .comision-box {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+            color: #34d399;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 800;
+            display: inline-block;
+        }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+        th, td { padding: 12px 10px; text-align: center; vertical-align: middle; }
+        th { 
+            background-color: #0f172a; 
+            color: var(--ck-text-muted); 
+            font-size: 0.75rem; 
+            font-weight: 800;
+            text-transform: uppercase; 
+            border-top: 1px solid var(--ck-border);
+            border-bottom: 1px solid var(--ck-border);
+        }
+
+        tr { background: #111827; transition: background 0.2s; }
+        tr.row-active { 
+            background-color: rgba(255, 102, 0, 0.08) !important; 
+            border: 1px solid var(--ck-orange);
+        }
+
+        .store-cell { display: flex; align-items: center; gap: 12px; }
+        .store-info { display: flex; flex-direction: column; align-items: flex-start; }
+        .logo-box {
+            height: 42px;
+            width: 70px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            padding: 3px;
+        }
+        .logo-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .logo-fallback {
+            background: linear-gradient(135deg, #ff6600, #b34700);
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+        }
+
+        .nombre-sucursal { font-weight: 800; font-size: 0.95rem; }
+        .tag-credit {
+            background: rgba(236, 72, 153, 0.2);
+            color: #f472b6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border: 1px solid rgba(236, 72, 153, 0.4);
+            display: inline-block;
+            margin-left: 4px;
+        }
+
+        input[type="number"], input[type="text"], select { 
+            padding: 8px; border: 1.5px solid var(--ck-border); border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: var(--ck-text); background: #0b0f19;
+        }
+        input[type="number"] { width: 90px; text-align: right; }
+        .input-payjoy { width: 65px !important; text-align: center !important; border-color: rgba(236, 72, 153, 0.5) !important; color: #f472b6 !important; }
+        input:disabled { opacity: 0.4; cursor: not-allowed; border-color: transparent; background: transparent; }
+
+        .progress-bar { background: #0d1322; border-radius: 10px; height: 12px; width: 80px; margin: 0 auto; overflow: hidden; border: 1px solid var(--ck-border); }
+        .progress-fill { background: linear-gradient(90deg, #059669, #10b981); height: 100%; width: 0%; transition: width 0.4s ease; }
+        .progress-fill-pasado { background: linear-gradient(90deg, #d97706, #f59e0b); height: 100%; width: 0%; transition: width 0.4s ease; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
+        .user-badge { background: #0d1322; padding: 8px 16px; border-radius: 10px; font-weight: 700; color: var(--ck-orange); border: 1px solid var(--ck-border); font-size: 0.85rem; }
+
+        .btn { border: none; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem; }
+        .btn-reset { background-color: #ef4444; color: white; }
+        .btn-save { background-color: #10b981; color: white; }
+        .btn-logout { background-color: #334155; color: white; }
+        .btn-qr { background-color: #8b5cf6; color: white; }
+        .btn-download { background-color: #0284c7; color: white; font-weight: 800; font-size: 0.95rem; padding: 12px 24px; border-radius: 10px; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4); }
+        .btn-delete { background-color: #dc2626; color: white; padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+
+        .table-responsive { overflow-x: auto; }
+        .pass-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-top: 15px; }
+        .pass-card { background: #0d1322; padding: 14px; border-radius: 10px; border: 1px solid var(--ck-border); text-align: left; }
+        .pass-card label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--ck-text-muted); margin-bottom: 6px; }
+        .pass-card input { width: 100%; box-sizing: border-box; }
+
+        .cuadro-container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #ffffff;
+            color: #0f172a;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .cuadro-header {
+            background: #0f172a;
+            color: #ffffff;
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .cuadro-header h2 { margin: 0; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+        .cuadro-header p { margin: 4px 0 0 0; font-size: 0.78rem; color: #38bdf8; font-weight: 600; }
+
+        .cuadro-fecha-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .cuadro-seccion-descanso {
+            background: #fff7ed;
+            border: 1.5px solid #fdba74;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+        .cuadro-seccion-descanso label { display: block; color: #ea580c; font-weight: 800; font-size: 0.82rem; margin-bottom: 6px; text-transform: uppercase; }
+        .cuadro-seccion-descanso input { width: 100%; background: #ffffff; color: #0f172a; border: 1px solid #f97316; padding: 8px; border-radius: 6px; font-weight: 700; }
+
+        .tabla-cuadro-diario { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        .tabla-cuadro-diario th { background: #0f172a; color: #ffffff; font-size: 0.75rem; padding: 9px; text-transform: uppercase; text-align: left; }
+        .tabla-cuadro-diario td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
+        .tabla-cuadro-diario input { width: 100%; background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 7px; border-radius: 6px; font-size: 0.85rem; font-weight: 700; }
+
+        .cuadro-seccion-mantenimiento {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+            padding: 14px;
+            border-radius: 10px;
+        }
+        .cuadro-seccion-mantenimiento h4 { margin: 0 0 10px 0; color: #166534; font-size: 0.88rem; font-weight: 800; text-transform: uppercase; }
+        .mantenimiento-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .mantenimiento-grid label { display: block; font-size: 0.75rem; font-weight: 700; color: #15803d; margin-bottom: 4px; }
+        .mantenimiento-grid input { width: 100%; background: #ffffff; border: 1px solid #4ade80; color: #0f172a; padding: 6px; border-radius: 6px; font-weight: 700; }
+        .cuadro-seccion-mantenimiento textarea { width: 100%; background: #ffffff; border: 1px solid #4ade80; color: #0f172a; padding: 8px; border-radius: 6px; font-weight: 600; font-family: inherit; font-size: 0.8rem; height: 65px; resize: none; }
+
+        .cuadro-footer-note { font-size: 0.7rem; color: #64748b; text-align: center; margin-top: 12px; font-weight: 600; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--ck-card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--ck-border); text-align: center; }
+        #qrcode { margin: 20px auto; padding: 10px; background: white; border-radius: 10px; display: flex; justify-content: center; width: fit-content; }
+
+        #toast {
+            visibility: hidden; min-width: 280px; background-color: #10b981; color: white;
+            text-align: center; border-radius: 10px; padding: 14px; position: fixed;
+            z-index: 3000; right: 24px; bottom: 24px; font-weight: 700; opacity: 0; transition: all 0.3s ease;
+        }
+        #toast.show { visibility: visible; opacity: 1; transform: translateY(-5px); }
+
+        .hist-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .input-hist-venta { width: 85px; font-weight: 700; color: #38bdf8; border: 1px solid #0284c7; padding: 4px; border-radius: 6px; text-align: center; background: #0c4a6e; }
+        .input-hist-pj { width: 55px; font-weight: 700; color: #f472b6; border: 1px solid #be185d; background: #831843; padding: 4px; border-radius: 6px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScreen">
+        <div class="login-card">
+            <img src="CK contorno blanco.png" alt="Celular Kits" style="height: 50px; margin-bottom: 10px;" onerror="this.style.display='none'">
+            <h2>Acceso al Dashboard</h2>
+            <p>Selecciona tu usuario e ingresa tu contraseña</p>
+            <select id="loginUser">
+                <option value="admin">🔒 Administrador General</option>
+                <optgroup label="Puntos de Venta" id="groupPuntosSelect"></optgroup>
+            </select>
+            <input type="password" id="loginPass" placeholder="Contraseña de acceso">
+            <button onclick="autenticar()">Ingresar al Sistema</button>
+        </div>
+    </div>
+
+    <div class="header-container">
+        <div class="brand-logo-title">
+            <img src="CK contorno blanco.png" alt="Celular Kits Logo" onerror="this.style.display='none'">
+            <h1>CELULAR KITS <span>VENTAS</span></h1>
+        </div>
+        <div class="timestamp-info">
+            Fecha Actual: <strong id="fechaHoyDisplay" style="color:var(--ck-orange);">--/--/----</strong> | 
+            Semana Activa: <strong id="semanaNumDisplay" style="color:#60a5fa;">--</strong> | 
+            Estado: <strong id="lastUpdate" style="color:#10b981;">Nube Activa ⚡</strong>
+        </div>
+    </div>
+
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="cambiarPestana('tab-carrera')">🏎️ Carrera del Día</button>
+        <button class="tab-btn" onclick="cambiarPestana('tab-asesores')">🏆 Bono Semanal Asesores</button>
+        <button class="tab-btn" onclick="cambiarPestana('tab-cuadro-personal')">📋 Cuadro Río Grande & Dispersos</button>
+        <button id="tabBtnHistorico" class="tab-btn" style="display:none;" onclick="cambiarPestana('tab-historico')">📅 Histórico por Punto (Admin)</button>
+        <button id="tabBtnGestionAsesores" class="tab-btn" style="display:none;" onclick="cambiarPestana('tab-gestion-asesores')">👥 Configurar Personal & Ajustes (Admin)</button>
+        <button id="tabBtnPass" class="tab-btn" style="display:none;" onclick="cambiarPestana('tab-passwords')">🔑 Configurar Contraseñas</button>
+    </div>
+
+    <!-- PESTAÑA 1: CARRERA DEL DÍA -->
+    <div id="tab-carrera" class="tab-content active">
+        
+        <div class="radio-player-bar">
+            <div class="radio-info">
+                <span id="radioLed" class="radio-pulse"></span>
+                <span style="font-weight: 800; font-size: 0.95rem; color: var(--ck-orange);">📻 RADIO CK ONLINE:</span>
+                <select id="selectRadioStation" style="min-width: 180px; padding: 6px 10px; background: #0b0f19;" onchange="cambiarEstacionRadio()"></select>
+            </div>
+            <div class="radio-controls">
+                <button class="btn-play" onclick="toggleRadioPlay()">
+                    <span id="playIcon">▶</span> <span id="playText">Escuchar</span>
+                </button>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-size:0.8rem; color:var(--ck-text-muted);">🔊</span>
+                    <input type="range" id="radioVolume" min="0" max="1" step="0.05" value="0.8" style="width: 80px;" oninput="cambiarVolumenRadio(this.value)">
+                </div>
+            </div>
+        </div>
+        <audio id="audioStreamPlayer" style="display:none;"></audio>
+
+        <div class="card summary">
+            <div class="summary-box">
+                <label>Venta Total Hoy</label>
+                <span id="totalVenta">🔒 Admin</span>
+            </div>
+            <div class="summary-box">
+                <label>Meta Total Hoy</label>
+                <span id="totalMeta">🔒 Admin</span>
+            </div>
+            <div class="summary-box">
+                <label>Avance General</label>
+                <span id="totalAvance" style="color:#10b981;">0%</span>
+            </div>
+            <div class="summary-box">
+                <label>Líneas PayJoy Hoy</label>
+                <span id="totalPayJoyMes" style="color:#ec4899;">0 líneas</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar">
+                <div>
+                    <span class="user-badge" id="userBadge">Sesión: Invitado</span>
+                    <button class="btn btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+                </div>
+                <div>
+                    <button id="btnQR" class="btn btn-qr" style="display:none;" onclick="mostrarQR()">📱 QR</button>
+                    <button id="btnReset" class="btn btn-reset" style="display:none;" onclick="guardarYReiniciarDiaGeneral()">Guardar y Reiniciar Día ($0)</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tablaVentas">
+                    <thead>
+                        <tr>
+                            <th>Posición</th>
+                            <th style="text-align: left; padding-left: 15px;">Punto de Venta</th>
+                            <th>Asesor / Encargado</th>
+                            <th style="color:#ec4899;">PayJoy (Líneas)</th>
+                            <th>Venta Actual ($)</th>
+                            <th>Meta ($) 🔒</th>
+                            <th>% Avance</th>
+                            <th>Carrera Meta</th>
+                            <th>Año Pasado ($) 🔒</th>
+                            <th>% vs Pasado</th>
+                            <th>Carrera vs Pasado</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 2: BONO SEMANAL Y AVANCE DE ASESORES -->
+    <div id="tab-asesores" class="tab-content">
+        <div class="bono-card">
+            <h3>
+                <span>📊 Avance de Comisión & Bono de Productividad</span>
+                <span id="badgeSemanaActual" style="font-size:0.85rem; color:#93c5fd;">Semana --</span>
+            </h3>
+            <p style="font-size:0.85rem; color:var(--ck-text-muted); margin-bottom:5px;">
+                • Ciclo Semanal: <strong>Sábado a Viernes</strong>. Comisiones calculadas al <strong>2.5% sobre el excedente</strong> de la venta mínima para bono.
+            </p>
+            <p style="font-size:0.85rem; color:#f472b6; font-weight:bold; margin-top:0;">
+                ⚠️ REGLA PAYJOY: En puntos con PayJoy, los asesores deben vender como MÍNIMO <u>1 Línea PayJoy Diaria</u> para ser acreedores al bono.
+            </p>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap:wrap; gap:10px;">
+                <h2 style="margin:0; font-size:1.2rem;">🏆 Progreso de Bono Individual</h2>
+                <div>
+                    <label style="font-size:0.85rem; color:var(--ck-text-muted); font-weight:700;">Filtrar Semana: </label>
+                    <select id="selectFiltroSemanaBono" onchange="renderBonoAsesores()" style="padding:6px; background:#0b0f19; font-weight:bold;"></select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tablaBonoAsesores">
+                    <thead>
+                        <tr>
+                            <th>Asesor</th>
+                            <th>Punto Asignado</th>
+                            <th>Venta Semanal ($)</th>
+                            <th>Mínimo Bono ($)</th>
+                            <th style="color:#f472b6;">Líneas PayJoy (Semana/Mín)</th>
+                            <th>% Avance</th>
+                            <th>Estado del Bono</th>
+                            <th style="color:#34d399;">Comisión Actual (2.5%)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 3: CUADRO DE TRABAJO IMPRIMIBLE / COMPARTIBLE -->
+    <div id="tab-cuadro-personal" class="tab-content">
+        <div style="text-align:center; margin-bottom: 20px;">
+            <button class="btn btn-download" onclick="exportarCuadroImagen()">📸 Descargar Cuadro en Imagen (PNG)</button>
+        </div>
+
+        <div id="areaCapturaCuadro" class="cuadro-container">
+            <div class="cuadro-header">
+                <h2>CUADRO DE TRABAJO RÍO GRANDE Y DISPERSOS</h2>
+                <p>Asignación de Personal y Plan Operativo Diario</p>
+            </div>
+
+            <div class="cuadro-fecha-bar">
+                <div>📌 Fecha: <input type="text" id="cuadroFecha" style="width:130px; background:#fff; color:#000; border:1px solid #cbd5e1; padding:4px; border-radius:4px; font-weight:bold;" onchange="guardarEstadoCuadroDiario()"></div>
+                <div>Día: <span id="cuadroDiaNombre" style="color:#2563eb;">--</span></div>
+            </div>
+
+            <div class="cuadro-seccion-descanso">
+                <label>🏖️ ASESORES EN DESCANSO</label>
+                <input type="text" id="cuadroDescansos" placeholder="Escribe aquí los nombres de los asesores que descansan hoy..." onchange="guardarEstadoCuadroDiario()">
+            </div>
+
+            <table class="tabla-cuadro-diario">
+                <thead>
+                    <tr>
+                        <th style="width:40%;">PUNTO DE VENTA</th>
+                        <th style="width:60%;">ASESOR(ES) ASIGNADO(S)</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyCuadroAsignacion"></tbody>
+            </table>
+
+            <div class="cuadro-seccion-mantenimiento">
+                <h4>🧹 PLAN DE LIMPIEZA Y MANTENIMIENTO</h4>
+                <div class="mantenimiento-grid">
+                    <div>
+                        <label>📍 Sucursales Programadas Hoy:</label>
+                        <input type="text" id="cuadroSucursalesLimp" placeholder="Ej. Río 1, Shota, Toska 1..." onchange="guardarEstadoCuadroDiario()">
+                    </div>
+                    <div>
+                        <label>⏰ Horario de Ejecución:</label>
+                        <input type="text" id="cuadroHorarioLimp" placeholder="Ej. 7:30 AM - 10:00 AM" onchange="guardarEstadoCuadroDiario()">
+                    </div>
+                </div>
+                <label style="display:block; font-size:0.75rem; font-weight:700; color:#15803d; margin-bottom:4px;">📋 Instrucciones y Actividades a Realizar:</label>
+                <textarea id="cuadroInstruccionesLimp" placeholder="Detalla aquí las tareas de mantenimiento..." onchange="guardarEstadoCuadroDiario()"></textarea>
+            </div>
+
+            <div class="cuadro-footer-note">
+                Nota: Confirmar llegada y envío de evidencias fotográficas al grupo de WhatsApp al concluir la jornada de limpieza.
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 4: GESTIÓN DE PERSONAL Y EDICIÓN MANUAL DE BONOS (SOLO ADMIN) -->
+    <div id="tab-gestion-asesores" class="tab-content">
+        <div class="card">
+            <h2 style="margin-top:0; font-size:1.2rem;">👥 Plantilla de Asesores & Edición de Cifras Semanales</h2>
+            <p style="font-size:0.85rem; color:var(--ck-text-muted);">
+                Como Administrador, puedes corregir directamente las ventas semanales o líneas PayJoy si existió pérdida de información o errores de captura.
+            </p>
+            
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; background:#0d1322; padding:15px; border-radius:12px; border:1px solid var(--ck-border);">
+                <input type="text" id="nuevoNombreAsesor" placeholder="Nombre Asesor" style="flex:1; min-width:150px;">
+                <select id="nuevoPuntoAsesor" style="flex:1; min-width:150px;">
+                    <option value="">Seleccionar Sucursal</option>
+                </select>
+                <input type="number" id="nuevaMetaBono" placeholder="Venta Mínima Bono ($)" style="width:160px;">
+                <button class="btn btn-save" onclick="agregarAsesorGeneral()">➕ Agregar Asesor</button>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tablaConfigAsesores">
+                    <thead>
+                        <tr>
+                            <th>Asesor</th>
+                            <th>Punto Asignado</th>
+                            <th>Venta Mínima Bono ($)</th>
+                            <th>Ajuste Venta Semanal ($)</th>
+                            <th>Ajuste Líneas PJ</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-top:0; font-size:1.2rem; color:var(--ck-orange);">📻 Gestión de Estaciones de Radio Online</h2>
+            <p style="font-size:0.85rem; color:var(--ck-text-muted);">Agrega o modifica los enlaces de streaming audio en vivo para que suenen en los puntos de venta.</p>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; background:#0d1322; padding:15px; border-radius:12px; border:1px solid var(--ck-border);">
+                <input type="text" id="nuevaRadioNombre" placeholder="Nombre de la Estación (Ej: Exa FM)" style="flex:1; min-width:150px;">
+                <input type="text" id="nuevaRadioURL" placeholder="URL del Stream (https://...mp3)" style="flex:2; min-width:220px;">
+                <button class="btn btn-save" onclick="agregarEstacionRadioAdmin()">➕ Agregar Estación</button>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tablaConfigRadio">
+                    <thead>
+                        <tr>
+                            <th>Nombre de la Estación</th>
+                            <th>URL del Stream (audio/live)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 5: HISTÓRICO DIARIO Y EDICIÓN COMPLETA (SOLO ADMIN) -->
+    <div id="tab-historico" class="tab-content">
+        <div class="card">
+            <div class="toolbar">
+                <h2 style="margin:0; font-size:1.2rem;">📅 Histórico Diario y Edición por Sucursal</h2>
+                <div>
+                    <label style="font-weight: bold; margin-right: 8px; font-size:0.85rem; color:var(--ck-text-muted);">Seleccionar Mes Calendario:</label>
+                    <select id="selectFiltroMes" onchange="renderHistóricoDetallado()"></select>
+                </div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--ck-text-muted); margin-bottom:15px;">
+                Modifica directamente los valores de cualquier día y punto de venta. La primera casilla es Venta ($) y la segunda es Líneas PayJoy.
+            </p>
+            <div class="table-responsive">
+                <table id="tablaHistoricoDetallado">
+                    <thead>
+                        <tr id="headersHistorico">
+                            <th>Fecha / Semana</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA 6: CONTRASEÑAS (SOLO ADMIN) -->
+    <div id="tab-passwords" class="tab-content">
+        <div class="card">
+            <h2 style="margin-top:0; font-size:1.2rem;">🔑 Modificar Contraseñas de Acceso</h2>
+            <p style="font-size: 0.85rem; color: var(--ck-text-muted);">Cambia las contraseñas individuales de cada punto de venta y haz clic en guardar.</p>
+            <div id="passwordsContainer" class="pass-grid"></div>
+            <br>
+            <button class="btn btn-save" style="font-size: 1rem; padding: 12px 24px;" onclick="guardarNuevasContrasenas()">💾 Guardar Nuevas Contraseñas</button>
+        </div>
+    </div>
+
+    <div id="modalQR" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Escanea para abrir el tablero</h3>
+            <div id="qrcode"></div>
+            <button class="btn btn-reset" onclick="cerrarQR()">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="toast">¡Información sincronizada en tiempo real!</div>
+
+<script>
+const firebaseConfig = {
+    databaseURL: "https://carrera-de-ventas-default-rtdb.firebaseio.com/"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let credenciales = {
+    "admin": { pass: "1234", nombre: "Administrador General", id: "admin" },
+    "1": { pass: "toska2", id: 1 }, "2": { pass: "rio1", id: 2 },
+    "3": { pass: "papis", id: 3 }, "4": { pass: "rio6", id: 4 },
+    "5": { pass: "americas", id: 5 }, "6": { pass: "toska1", id: 6 },
+    "7": { pass: "sanlorenzo", id: 7 }, "8": { pass: "monumental", id: 8 },
+    "9": { pass: "rio3", id: 9 }, "10": { pass: "rio5", id: 10 },
+    "11": { pass: "shota", id: 11 }, "12": { pass: "miel", id: 12 }, "13": { pass: "cocos", id: 13 }
+};
+
+const datosBase = [
+    { id: 2, nombre: "RIO 1", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: false },
+    { id: 9, nombre: "RIO 3", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: false },
+    { id: 10, nombre: "RIO 5", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: true },
+    { id: 4, nombre: "RIO 6", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: true },
+    { id: 5, nombre: "AMERICAS", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: true },
+    { id: 8, nombre: "MONUMENTAL", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: true },
+    { id: 7, nombre: "SAN LORENZO", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "CK contorno blanco.png", esCredito: true },
+    { id: 11, nombre: "SHOTA RIO", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "SHOTA_2.jpg", esCredito: false },
+    { id: 3, nombre: "PAPIS RIO", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "", esCredito: false },
+    { id: 6, nombre: "TOSKARIO 1", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "logo toska_2.jpeg", esCredito: false },
+    { id: 1, nombre: "TOSKARIO 2", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "logo toska_2.jpeg", esCredito: false },
+    { id: 12, nombre: "MIEL RIO", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "logo miel.jpg", esCredito: false },
+    { id: 13, nombre: "COCOS", asesor: "", venta: 0, meta: 0, pasado: 0, payjoy: 0, logo: "Copia de logo cocos boutuique.jpeg", esCredito: false }
+];
+
+let sucursales = datosBase;
+let historialCortes = [];
+let plantillaAsesores = [];
+let asignacionesCuadro = {};
+let estacionesRadio = [
+    { nombre: "Exa FM (Pop En Vivo)", url: "https://stream.zeno.fm/f3v4827828quv" },
+    { nombre: "La Rancherita (Música Pop/Variada)", url: "https://stream.zeno.fm/65842828quv" }
+];
+let usuarioActual = null;
+let estaEditando = false;
+
+const groupSelect = document.getElementById('groupPuntosSelect');
+const selectPuntoAdmin = document.getElementById('nuevoPuntoAsesor');
+
+datosBase.forEach(s => {
+    groupSelect.innerHTML += `<option value="${s.id}">${s.nombre} ${s.esCredito ? '(PayJoy)' : ''}</option>`;
+    selectPuntoAdmin.innerHTML += `<option value="${s.nombre}">${s.nombre}</option>`;
+});
+
+/* LÓGICA DE CÁLCULO DE SEMANAS (SÁBADO A VIERNES) */
+function parseFechaMX(fechaStr) {
+    let parts = fechaStr.split('/');
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+}
+
+function obtenerNumeroSemana(fechaObj) {
+    let d = new Date(Date.UTC(fechaObj.getFullYear(), fechaObj.getMonth(), fechaObj.getDate()));
+    let day = d.getUTCDay(); 
+    
+    let diffToSaturday = (day >= 6) ? (day - 6) : (day + 1);
+    let sabadoInicio = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - diffToSaturday));
+    
+    let primerEnero = new Date(Date.UTC(sabadoInicio.getUTCFullYear(), 0, 1));
+    let primerEneroDay = primerEnero.getUTCDay();
+    let diffPrimerSabado = (primerEneroDay >= 6) ? (primerEneroDay - 6) : (primerEneroDay + 1);
+    
+    let primerSabadoAño = new Date(Date.UTC(primerEnero.getUTCFullYear(), 0, 1 - diffPrimerSabado));
+    
+    let diffMs = sabadoInicio.getTime() - primerSabadoAño.getTime();
+    let numSemana = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1;
+    
+    return numSemana;
+}
+
+function obtenerNumSemanaActual() {
+    return obtenerNumeroSemana(new Date());
+}
+
+function obtenerFechaFormateada() {
+    let d = new Date();
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function obtenerNombreMesActual() {
+    let d = new Date();
+    let nombreMes = d.toLocaleDateString('es-ES', { month: 'long' });
+    nombreMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+    return `${nombreMes} de ${d.getFullYear()}`;
+}
+
+function obtenerNombreDia() {
+    let d = new Date();
+    return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+let numSemanaHoy = obtenerNumSemanaActual();
+document.getElementById("fechaHoyDisplay").innerText = obtenerFechaFormateada();
+document.getElementById("semanaNumDisplay").innerText = "Semana " + numSemanaHoy;
+document.getElementById("badgeSemanaActual").innerText = "Semana " + numSemanaHoy;
+document.getElementById("cuadroFecha").value = obtenerFechaFormateada();
+document.getElementById("cuadroDiaNombre").innerText = obtenerNombreDia();
+
+// REALTIME LISTENERS FIREBASE
+db.ref('puntos_ventas').on('value', (snap) => {
+    const data = snap.val();
+    if (data && !estaEditando) {
+        Object.keys(data).forEach(idKey => {
+            let item = sucursales.find(s => s.id == idKey);
+            if (item) {
+                item.venta = data[idKey].venta || 0;
+                item.payjoy = data[idKey].payjoy || 0;
+                item.asesor = data[idKey].asesor || "";
+                item.meta = data[idKey].meta || 0;
+                item.pasado = data[idKey].pasado || 0;
+                item.ventasAsesores = data[idKey].ventasAsesores || {};
+            }
+        });
+        if (usuarioActual) {
+            renderTable();
+            renderBonoAsesores();
+        }
+    }
+});
+
+db.ref('plantillaAsesores').on('value', (snap) => {
+    const data = snap.val();
+    if (data) {
+        plantillaAsesores = Array.isArray(data) ? data : Object.values(data);
+        renderBonoAsesores();
+        if (usuarioActual) renderTable();
+        if (usuarioActual && usuarioActual.id === "admin") renderGestionAsesores();
+    }
+});
+
+db.ref('estacionesRadio').on('value', (snap) => {
+    const data = snap.val();
+    if (data) {
+        estacionesRadio = Array.isArray(data) ? data : Object.values(data);
+        renderSelectorRadio();
+        if (usuarioActual && usuarioActual.id === "admin") renderTablaConfigRadio();
+    }
+});
+
+db.ref('cuadroTrabajoDiario').on('value', (snap) => {
+    const data = snap.val();
+    if (data) {
+        if (data.descansos !== undefined) document.getElementById("cuadroDescansos").value = data.descansos;
+        if (data.sucursalesLimp !== undefined) document.getElementById("cuadroSucursalesLimp").value = data.sucursalesLimp;
+        if (data.horarioLimp !== undefined) document.getElementById("cuadroHorarioLimp").value = data.horarioLimp;
+        if (data.instruccionesLimp !== undefined) document.getElementById("cuadroInstruccionesLimp").value = data.instruccionesLimp;
+        if (data.asignaciones) asignacionesCuadro = data.asignaciones;
+        renderCuadroDiario();
+    }
+});
+
+db.ref('credenciales').on('value', (snap) => {
+    const data = snap.val();
+    if (data) credenciales = data;
+});
+
+function cargarYMigrarHistoricosAnteriores() {
+    db.ref().on('value', (snap) => {
+        const todo = snap.val();
+        if (!todo) return;
+        if (todo.credenciales) credenciales = todo.credenciales;
+
+        let listaTemporal = [];
+
+        if (todo.historialCortes) {
+            let arr = Array.isArray(todo.historialCortes) ? todo.historialCortes : Object.values(todo.historialCortes);
+            arr.forEach(h => { 
+                if(h && h.fecha) {
+                    if (!h.numSemana) {
+                        h.numSemana = obtenerNumeroSemana(parseFechaMX(h.fecha));
+                    }
+                    if (!h.mesNombre) {
+                        let p = h.fecha.split('/');
+                        let fechaReg = new Date(p[2], p[1] - 1, p[0]);
+                        let mName = fechaReg.toLocaleDateString('es-ES', { month: 'long' });
+                        h.mesNombre = `${mName.charAt(0).toUpperCase() + mName.slice(1)} de ${fechaReg.getFullYear()}`;
+                    }
+                    listaTemporal.push(h); 
+                }
+            });
+        }
+
+        if (todo.ventas_diarias) {
+            Object.keys(todo.ventas_diarias).forEach(fechaKey => {
+                let reg = todo.ventas_diarias[fechaKey];
+                let p = fechaKey.split('/');
+                let fechaReg = new Date(p[2], p[1] - 1, p[0]);
+                let mName = fechaReg.toLocaleDateString('es-ES', { month: 'long' });
+                let mesNombreDinamico = `${mName.charAt(0).toUpperCase() + mName.slice(1)} de ${fechaReg.getFullYear()}`;
+
+                let desgloseV = {}, desglosePJ = {};
+                if (reg.puntos) {
+                    Object.keys(reg.puntos).forEach(pNombre => {
+                        desgloseV[pNombre] = parseFloat(reg.puntos[pNombre].venta) || 0;
+                        desglosePJ[pNombre] = parseInt(reg.puntos[pNombre].payjoy) || 0;
+                    });
+                }
+
+                if (!listaTemporal.some(x => x.fecha === fechaKey)) {
+                    let nSem = obtenerNumeroSemana(parseFechaMX(fechaKey));
+                    listaTemporal.push({
+                        fecha: fechaKey,
+                        mesNombre: mesNombreDinamico,
+                        numSemana: nSem,
+                        desglose: desgloseV,
+                        desglosePayJoy: desglosePJ
+                    });
+                }
+            });
+        }
+
+        let now = new Date();
+        let yearNow = now.getFullYear();
+        let monthNow = now.getMonth();
+        let diasEnMes = new Date(yearNow, monthNow + 1, 0).getDate();
+        let mesActualNombreDinamico = obtenerNombreMesActual();
+
+        for (let dia = 1; dia <= diasEnMes; dia++) {
+            let diaStr = dia < 10 ? `0${dia}` : `${dia}`;
+            let mesStr = (monthNow + 1) < 10 ? `0${monthNow + 1}` : `${monthNow + 1}`;
+            let fechaDinamica = `${diaStr}/${mesStr}/${yearNow}`;
+            
+            if (!listaTemporal.some(x => x.fecha === fechaDinamica)) {
+                let desgloseV = {}, desglosePJ = {};
+                datosBase.forEach(s => {
+                    desgloseV[s.nombre] = 0;
+                    desglosePJ[s.nombre] = 0;
+                });
+                let nSem = obtenerNumeroSemana(parseFechaMX(fechaDinamica));
+                listaTemporal.push({
+                    fecha: fechaDinamica,
+                    mesNombre: mesActualNombreDinamico,
+                    numSemana: nSem,
+                    desglose: desgloseV,
+                    desglosePayJoy: desglosePJ
+                });
+            }
+        }
+
+        listaTemporal.sort((a, b) => {
+            let pA = a.fecha.split('/');
+            let pB = b.fecha.split('/');
+            return new Date(pA[2], pA[1] - 1, pA[0]) - new Date(pB[2], pB[1] - 1, pB[0]);
+        });
+
+        historialCortes = listaTemporal;
+        poblarSelectorSemanasBono();
+        if (usuarioActual && usuarioActual.id === "admin") renderHistóricoDetallado();
+        renderBonoAsesores();
+    });
+}
+
+function poblarSelectorSemanasBono() {
+    let select = document.getElementById("selectFiltroSemanaBono");
+    let prevVal = select.value;
+    select.innerHTML = "";
+    
+    let semanasSet = new Set(historialCortes.map(h => h.numSemana));
+    semanasSet.add(numSemanaHoy);
+    
+    let semanasArr = Array.from(semanasSet).sort((a,b) => b - a);
+    semanasArr.forEach(s => {
+        select.innerHTML += `<option value="${s}">Semana ${s}${s === numSemanaHoy ? ' (Actual)' : ''}</option>`;
+    });
+
+    if (prevVal && semanasSet.has(parseInt(prevVal))) {
+        select.value = prevVal;
+    } else {
+        select.value = numSemanaHoy;
+    }
+}
+
+cargarYMigrarHistoricosAnteriores();
+
+/* TEMPORIZADOR DE MEDIANOCHE: CORTE AUTOMÁTICO A LAS 12:00 AM */
+function verificarCorteMedianoche() {
+    let ahora = new Date();
+    if (ahora.getHours() === 0 && ahora.getMinutes() === 0) {
+        let fechaHoyStr = obtenerFechaFormateada();
+        let ultimaEjecucion = localStorage.getItem("ck_ultimo_corte_automatico");
+        if (ultimaEjecucion !== fechaHoyStr) {
+            ejecutarCorteAutomaticoMedianoche(fechaHoyStr);
+        }
+    }
+}
+
+function ejecutarCorteAutomaticoMedianoche(fechaHoyStr) {
+    const semNum = obtenerNumSemanaActual();
+    const mesFormateado = obtenerNombreMesActual();
+
+    let desgloseV = {}, desglosePJ = {}, desgloseA = {}, desgloseAsesoresVentas = {};
+    datosBase.forEach(s => {
+        let actual = sucursales.find(item => item.id === s.id);
+        desgloseV[s.nombre] = actual ? actual.venta : 0;
+        desglosePJ[s.nombre] = actual ? actual.payjoy : 0;
+        desgloseA[s.nombre] = actual ? (actual.asesor || "").trim() : "";
+        if (actual && actual.ventasAsesores) {
+            desgloseAsesoresVentas[s.nombre] = actual.ventasAsesores;
+        }
+    });
+
+    historialCortes = historialCortes.filter(h => h.fecha !== fechaHoyStr);
+    historialCortes.push({
+        fecha: fechaHoyStr,
+        mesNombre: mesFormateado,
+        numSemana: semNum,
+        desglose: desgloseV,
+        desglosePayJoy: desglosePJ,
+        desgloseAsesores: desgloseA,
+        desgloseAsesoresVentas: desgloseAsesoresVentas
+    });
+
+    db.ref('historialCortes').set(historialCortes);
+
+    datosBase.forEach(s => {
+        db.ref(`puntos_ventas/${s.id}/venta`).set(0);
+        db.ref(`puntos_ventas/${s.id}/payjoy`).set(0);
+        db.ref(`puntos_ventas/${s.id}/ventasAsesores`).set(null);
+    });
+
+    localStorage.setItem("ck_ultimo_corte_automatico", fechaHoyStr);
+    mostrarToast("🌙 ¡Corte automático de medianoche ejecutado con éxito!");
+}
+
+setInterval(verificarCorteMedianoche, 60000);
+
+/* REPRODUCTOR DE MÚSICA ONLINE */
+function renderSelectorRadio() {
+    const select = document.getElementById("selectRadioStation");
+    select.innerHTML = "";
+    if (estacionesRadio.length === 0) {
+        select.innerHTML = `<option value="">Sin estaciones configuradas</option>`;
+        return;
+    }
+    estacionesRadio.forEach((est, idx) => {
+        select.innerHTML += `<option value="${est.url}">${est.nombre}</option>`;
+    });
+}
+
+function toggleRadioPlay() {
+    const audio = document.getElementById("audioStreamPlayer");
+    const select = document.getElementById("selectRadioStation");
+    const playIcon = document.getElementById("playIcon");
+    const playText = document.getElementById("playText");
+    const led = document.getElementById("radioLed");
+
+    if (!select.value) {
+        alert("No hay una estación seleccionada.");
+        return;
+    }
+
+    if (audio.paused) {
+        if (!audio.src || audio.src !== select.value) {
+            audio.src = select.value;
+        }
+        audio.play().then(() => {
+            playIcon.innerText = "⏸";
+            playText.innerText = "Pausar";
+            led.classList.add("playing");
+        }).catch(e => {
+            alert("No se pudo iniciar la transmisión. Verifica que la URL del stream sea válida.");
+        });
+    } else {
+        audio.pause();
+        playIcon.innerText = "▶";
+        playText.innerText = "Escuchar";
+        led.classList.remove("playing");
+    }
+}
+
+function cambiarEstacionRadio() {
+    const audio = document.getElementById("audioStreamPlayer");
+    const select = document.getElementById("selectRadioStation");
+    if (!audio.paused) {
+        audio.src = select.value;
+        audio.play();
+    }
+}
+
+function cambiarVolumenRadio(val) {
+    const audio = document.getElementById("audioStreamPlayer");
+    audio.volume = parseFloat(val);
+}
+
+function renderTablaConfigRadio() {
+    let tbody = document.querySelector("#tablaConfigRadio tbody");
+    tbody.innerHTML = "";
+    estacionesRadio.forEach((est, idx) => {
+        let row = `<tr>
+            <td><input type="text" value="${est.nombre}" onchange="actualizarEstacionRadio(${idx}, 'nombre', this.value)"></td>
+            <td><input type="text" value="${est.url}" style="width:100%; text-align:left;" onchange="actualizarEstacionRadio(${idx}, 'url', this.value)"></td>
+            <td><button class="btn-delete" onclick="eliminarEstacionRadio(${idx})">🗑️ Eliminar</button></td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function agregarEstacionRadioAdmin() {
+    let nom = document.getElementById("nuevaRadioNombre").value.trim();
+    let url = document.getElementById("nuevaRadioURL").value.trim();
+
+    if (!nom || !url) {
+        alert("Por favor completa el nombre y la URL de la radio.");
+        return;
+    }
+
+    estacionesRadio.push({ nombre: nom, url: url });
+    db.ref('estacionesRadio').set(estacionesRadio)
+        .then(() => {
+            mostrarToast("Estación agregada con éxito.");
+            document.getElementById("nuevaRadioNombre").value = "";
+            document.getElementById("nuevaRadioURL").value = "";
+            renderTablaConfigRadio();
+            renderSelectorRadio();
+        });
+}
+
+function actualizarEstacionRadio(index, prop, valor) {
+    estacionesRadio[index][prop] = valor;
+    db.ref('estacionesRadio').set(estacionesRadio);
+    mostrarToast("Estación actualizada.");
+}
+
+function eliminarEstacionRadio(index) {
+    if (confirm("¿Eliminar esta estación?")) {
+        estacionesRadio.splice(index, 1);
+        db.ref('estacionesRadio').set(estacionesRadio);
+        renderTablaConfigRadio();
+        renderSelectorRadio();
+        mostrarToast("Estación eliminada.");
+    }
+}
+
+function cambiarPestana(idTab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+
+    const btnTarget = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(idTab));
+    if (btnTarget) btnTarget.classList.add('active');
+    
+    document.getElementById(idTab).classList.add('active');
+
+    if (idTab === 'tab-asesores') renderBonoAsesores();
+    if (idTab === 'tab-cuadro-personal') renderCuadroDiario();
+    if (idTab === 'tab-gestion-asesores') { renderGestionAsesores(); renderTablaConfigRadio(); }
+    if (idTab === 'tab-historico') renderHistóricoDetallado();
+    if (idTab === 'tab-passwords') renderFormularioPasswords();
+}
+
+function autenticar() {
+    let userKey = document.getElementById("loginUser").value;
+    let passInput = document.getElementById("loginPass").value.trim();
+
+    let config = credenciales[userKey];
+    if (config && config.pass === passInput) {
+        usuarioActual = config;
+        document.getElementById("loginScreen").style.display = "none";
+        
+        let targetSucursal = sucursales.find(s => s.id == config.id);
+        let badgeText = config.id === "admin" ? "🔑 Admin General" : "📍 " + (targetSucursal ? targetSucursal.nombre : "Punto de Venta");
+        document.getElementById("userBadge").innerText = "Sesión: " + badgeText;
+
+        if (config.id === "admin") {
+            document.getElementById("btnQR").style.display = "inline-block";
+            document.getElementById("btnReset").style.display = "inline-block";
+            document.getElementById("tabBtnHistorico").style.display = "inline-block";
+            document.getElementById("tabBtnGestionAsesores").style.display = "inline-block";
+            document.getElementById("tabBtnPass").style.display = "inline-block";
+        } else {
+            document.getElementById("btnQR").style.display = "none";
+            document.getElementById("btnReset").style.display = "none";
+            document.getElementById("tabBtnHistorico").style.display = "none";
+            document.getElementById("tabBtnGestionAsesores").style.display = "none";
+            document.getElementById("tabBtnPass").style.display = "none";
+        }
+
+        renderTable();
+        renderBonoAsesores();
+        renderCuadroDiario();
+        renderSelectorRadio();
+    } else {
+        alert("Contraseña incorrecta.");
+    }
+}
+
+function cerrarSesion() {
+    usuarioActual = null;
+    document.getElementById("loginPass").value = "";
+    document.getElementById("loginScreen").style.display = "flex";
+    cambiarPestana('tab-carrera');
+}
+
+function renderTable() {
+    if (estaEditando) return;
+
+    sucursales.sort((a, b) => b.venta - a.venta);
+    let tbody = document.querySelector("#tablaVentas tbody");
+    tbody.innerHTML = "";
+
+    let totalV = 0, totalM = 0, totalPJ = 0;
+    let esAdmin = usuarioActual && usuarioActual.id === "admin";
+
+    sucursales.forEach((s, index) => {
+        totalV += s.venta;
+        totalM += s.meta;
+        totalPJ += (s.payjoy || 0);
+        
+        let avanceMeta = s.meta > 0 ? ((s.venta / s.meta) * 100).toFixed(1) : 0;
+        let avancePasado = s.pasado > 0 ? ((s.venta / s.pasado) * 100).toFixed(1) : 0;
+        let esSuSucursal = usuarioActual && (esAdmin || usuarioActual.id == s.id);
+        
+        let disableVenta = esSuSucursal ? '' : 'disabled';
+        let disablePayJoy = (esSuSucursal && s.esCredito) ? '' : 'disabled';
+        let disableAsesor = esSuSucursal ? '' : 'disabled';
+        let disableAdminOnly = esAdmin ? '' : 'disabled';
+
+        let rowClass = esSuSucursal ? 'row-active' : '';
+
+        let logoHtml = s.logo 
+            ? `<img src="${s.logo}" alt="${s.nombre}" crossOrigin="anonymous" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="logo-fallback" style="display:none;">${s.nombre.substring(0,3)}</div>`
+            : `<div class="logo-fallback">${s.nombre.substring(0,3)}</div>`;
+
+        let asesoresTienda = plantillaAsesores.filter(a => a.punto === s.nombre);
+        
+        let asesorColumnHtml = '';
+        let ventaColumnHtml = '';
+
+        if (asesoresTienda.length > 0) {
+            asesorColumnHtml = `<div style="display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 2px 0;">
+                ${asesoresTienda.map(a => `<strong style="color:var(--ck-text); font-size:0.85rem;">👤 ${a.nombre}</strong>`).join('')}
+            </div>`;
+
+            ventaColumnHtml = `<div style="display: flex; flex-direction: column; gap: 6px;">
+                ${asesoresTienda.map(a => `
+                    <input type="number" min="0" value="${s.ventasAsesores && s.ventasAsesores[a.nombre] !== undefined ? s.ventasAsesores[a.nombre] : 0}" 
+                        style="width: 95px; text-align: right;" ${disableVenta}
+                        onfocus="estaEditando = true" onblur="estaEditando = false"
+                        onchange="actualizarVentaAsesor(${s.id}, '${a.nombre}', parseFloat(this.value)||0)">
+                `).join('')}
+            </div>`;
+        } else {
+            asesorColumnHtml = `<input type="text" placeholder="Asesor" value="${s.asesor || ''}" ${disableAsesor} 
+                onfocus="estaEditando = true" onblur="estaEditando = false" 
+                onchange="actualizarAtómico(${s.id}, 'asesor', this.value)">`;
+
+            ventaColumnHtml = `<input type="number" min="0" value="${s.venta}" ${disableVenta} 
+                onfocus="estaEditando = true" onblur="estaEditando = false" 
+                onchange="actualizarAtómico(${s.id}, 'venta', parseFloat(this.value)||0)">`;
+        }
+
+        let row = `<tr class="${rowClass}">
+            <td><strong>#${index + 1}</strong></td>
+            <td>
+                <div class="store-cell">
+                    <div class="logo-box">${logoHtml}</div>
+                    <div class="store-info">
+                        <span class="nombre-sucursal" style="color:var(--ck-orange);">${s.nombre}</span>
+                        ${s.esCredito ? '<span class="tag-credit">PAYJOY</span>' : ''}
+                    </div>
+                </div>
+            </td>
+            <td>${asesorColumnHtml}</td>
+            <td>
+                <input type="number" class="input-payjoy" min="0" value="${s.payjoy || 0}" ${disablePayJoy} 
+                    onfocus="estaEditando = true" onblur="estaEditando = false" 
+                    onchange="actualizarAtómico(${s.id}, 'payjoy', parseFloat(this.value)||0)">
+            </td>
+            <td>${ventaColumnHtml}</td>
+            <td>
+                <input type="number" min="0" value="${s.meta}" ${disableAdminOnly} 
+                    onfocus="estaEditando = true" onblur="estaEditando = false" 
+                    onchange="actualizarAtómico(${s.id}, 'meta', parseFloat(this.value)||0)">
+            </td>
+            <td><strong>${avanceMeta}%</strong></td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${Math.min(avanceMeta, 100)}%;"></div>
+                </div>
+            </td>
+            <td>
+                <input type="number" min="0" value="${s.pasado}" ${disableAdminOnly} 
+                    onfocus="estaEditando = true" onblur="estaEditando = false" 
+                    onchange="actualizarAtómico(${s.id}, 'pasado', parseFloat(this.value)||0)">
+            </td>
+            <td><strong>${avancePasado}%</strong></td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill-pasado" style="width: ${Math.min(avancePasado, 100)}%;"></div>
+                </div>
+            </td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+
+    if (esAdmin) {
+        document.getElementById("totalVenta").innerText = "$" + totalV.toLocaleString();
+        document.getElementById("totalMeta").innerText = "$" + totalM.toLocaleString();
+    } else {
+        document.getElementById("totalVenta").innerText = "🔒 Reservado";
+        document.getElementById("totalMeta").innerText = "🔒 Reservado";
+    }
+    
+    let totalAv = totalM > 0 ? ((totalV / totalM) * 100).toFixed(1) : 0;
+    document.getElementById("totalAvance").innerText = totalAv + "%";
+    document.getElementById("totalPayJoyMes").innerText = totalPJ + " líneas";
+}
+
+function actualizarVentaAsesor(idSucursal, nombreAsesor, valor) {
+    db.ref(`puntos_ventas/${idSucursal}/ventasAsesores/${nombreAsesor}`).set(valor)
+        .then(() => {
+            let suc = sucursales.find(s => s.id == idSucursal);
+            if (suc) {
+                if (!suc.ventasAsesores) suc.ventasAsesores = {};
+                suc.ventasAsesores[nombreAsesor] = valor;
+                let totalStore = Object.values(suc.ventasAsesores).reduce((a, b) => a + (parseFloat(b) || 0), 0);
+                suc.venta = totalStore;
+                db.ref(`puntos_ventas/${idSucursal}/venta`).set(totalStore);
+            }
+            mostrarToast("¡Venta de asesor sincronizada!");
+            renderBonoAsesores();
+        })
+        .catch(e => alert("Error: " + e.message));
+}
+
+function calcularMetricasSemanaAsesor(nombreAsesor, nombrePuntoDefecto, ajusteVenta, ajustePJ, targetSemana) {
+    let ventaSemanal = 0;
+    let pjSemanal = 0;
+    let diasTrabajados = 0;
+    let nomClean = (nombreAsesor || "").toLowerCase().trim();
+
+    if (!nomClean) {
+        return { ventaSemanal: 0, pjSemanal: 0, diasSemana: 1, esPayJoy: false };
+    }
+
+    if (targetSemana === numSemanaHoy) {
+        sucursales.forEach(s => {
+            if (s.ventasAsesores && s.ventasAsesores[nombreAsesor] !== undefined) {
+                ventaSemanal += parseFloat(s.ventasAsesores[nombreAsesor]) || 0;
+                diasTrabajados++;
+            } else {
+                let asesorAct = (s.asesor || "").toLowerCase().trim();
+                if (asesorAct && (asesorAct === nomClean || nomClean.includes(asesorAct) || asesorAct.includes(nomClean))) {
+                    ventaSemanal += (parseFloat(s.venta) || 0);
+                    diasTrabajados++;
+                }
+            }
+        });
+        sucursales.forEach(s => {
+            let asesorAct = (s.asesor || "").toLowerCase().trim();
+            let assignedStore = plantillaAsesores.find(a => a.nombre === nombreAsesor)?.punto;
+            if (s.nombre === assignedStore || (asesorAct && (asesorAct === nomClean || nomClean.includes(asesorAct)))) {
+                pjSemanal += (parseInt(s.payjoy) || 0);
+            }
+        });
+    }
+
+    historialCortes.forEach(corte => {
+        if (corte.numSemana === targetSemana) {
+            let sumoEnCorte = false;
+
+            if (corte.desgloseAsesoresVentas && corte.desgloseAsesoresVentas[nombrePuntoDefecto] && corte.desgloseAsesoresVentas[nombrePuntoDefecto][nombreAsesor] !== undefined) {
+                ventaSemanal += parseFloat(corte.desgloseAsesoresVentas[nombrePuntoDefecto][nombreAsesor]) || 0;
+                sumoEnCorte = true;
+            } else if (corte.desgloseAsesores) {
+                Object.keys(corte.desgloseAsesores).forEach(pNombre => {
+                    let asesorCorte = (corte.desgloseAsesores[pNombre] || "").toLowerCase().trim();
+                    if (asesorCorte && (asesorCorte === nomClean || nomClean.includes(asesorCorte) || asesorCorte.includes(nomClean))) {
+                        if (corte.desglose && corte.desglose[pNombre] !== undefined) {
+                            ventaSemanal += parseFloat(corte.desglose[pNombre]) || 0;
+                        }
+                        sumoEnCorte = true;
+                    }
+                });
+            } else {
+                if (corte.desglose && corte.desglose[nombrePuntoDefecto] !== undefined) {
+                    ventaSemanal += parseFloat(corte.desglose[nombrePuntoDefecto]) || 0;
+                    sumoEnCorte = true;
+                }
+            }
+
+            if (corte.desglosePayJoy && corte.desglosePayJoy[nombrePuntoDefecto] !== undefined) {
+                pjSemanal += parseInt(corte.desglosePayJoy[nombrePuntoDefecto]) || 0;
+            }
+
+            if (sumoEnCorte) diasTrabajados++;
+        }
+    });
+
+    let vTotal = (ajusteVenta !== undefined && ajusteVenta !== null && ajusteVenta !== "") ? parseFloat(ajusteVenta) : ventaSemanal;
+    let pjTotal = (ajustePJ !== undefined && ajustePJ !== null && ajustePJ !== "") ? parseInt(ajustePJ) : pjSemanal;
+
+    let sucursalMatch = sucursales.find(s => s.nombre === nombrePuntoDefecto);
+
+    return {
+        ventaSemanal: vTotal,
+        pjSemanal: pjTotal,
+        diasSemana: Math.min(Math.max(diasTrabajados, 1), 7),
+        esPayJoy: sucursalMatch ? sucursalMatch.esCredito : false
+    };
+}
+
+function renderBonoAsesores() {
+    let tbody = document.querySelector("#tablaBonoAsesores tbody");
+    tbody.innerHTML = "";
+
+    let selectSemana = document.getElementById("selectFiltroSemanaBono");
+    let semanaSel = parseInt(selectSemana.value) || numSemanaHoy;
+
+    let esAdmin = usuarioActual && usuarioActual.id === "admin";
+    let sucursalUsuario = null;
+    let asesorHoyPunto = "";
+
+    if (!esAdmin && usuarioActual) {
+        sucursalUsuario = sucursales.find(s => s.id == usuarioActual.id);
+        if (sucursalUsuario) {
+            asesorHoyPunto = sucursalUsuario.asesor ? sucursalUsuario.asesor.trim().toLowerCase() : "";
+        }
+    }
+
+    let plantillaFiltrada = plantillaAsesores;
+
+    if (!esAdmin && sucursalUsuario) {
+        plantillaFiltrada = plantillaAsesores.filter(a => {
+            let coincidePunto = a.punto === sucursalUsuario.nombre;
+            if (!coincidePunto) return false;
+            if (asesorHoyPunto.length > 0) {
+                return a.nombre.toLowerCase().includes(asesorHoyPunto) || asesorHoyPunto.includes(a.nombre.toLowerCase());
+            }
+            return true;
+        });
+    }
+
+    if (plantillaFiltrada.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--ck-text-muted); padding:20px;">No hay registros de asesores asignados a esta sucursal o semana.</td></tr>`;
+        return;
+    }
+
+    plantillaFiltrada.forEach(a => {
+        let metrics = calcularMetricasSemanaAsesor(a.nombre, a.punto, a.ajusteVenta, a.ajustePJ, semanaSel);
+        let metaDinero = a.metaBono || 10000;
+        let pctDinero = metaDinero > 0 ? ((metrics.ventaSemanal / metaDinero) * 100).toFixed(1) : 0;
+        
+        let cuotaMinimaPJ = metrics.esPayJoy ? metrics.diasSemana : 0;
+        let cumpleDinero = metrics.ventaSemanal >= metaDinero;
+        let cumplePJ = !metrics.esPayJoy || (metrics.pjSemanal >= cuotaMinimaPJ);
+
+        let excedente = Math.max(0, metrics.ventaSemanal - metaDinero);
+        let montoComision = (cumpleDinero && cumplePJ) ? (excedente * 0.025) : 0;
+
+        let statusTag = "";
+        if (cumpleDinero && cumplePJ) {
+            statusTag = `<span class="bono-status bono-alcanzado">¡Meta Alcanzada! 🎉</span>`;
+        } else if (cumpleDinero && !cumplePJ) {
+            statusTag = `<span class="bono-status bono-falta-pj">Faltan Líneas PJ (${metrics.pjSemanal}/${cuotaMinimaPJ})</span>`;
+        } else {
+            statusTag = `<span class="bono-status bono-pendiente">En Proceso (${pctDinero}%)</span>`;
+        }
+
+        let pjTexto = metrics.esPayJoy 
+            ? `<strong style="color:#f472b6;">${metrics.pjSemanal} / ${cuotaMinimaPJ} min.</strong>` 
+            : `<span style="color:var(--ck-text-muted);">N/A (Punto Contado)</span>`;
+
+        let comisionHtml = (cumpleDinero && cumplePJ)
+            ? `<div class="comision-box">$${montoComision.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`
+            : `<span style="color:var(--ck-text-muted); font-size:0.85rem;">$0.00</span>`;
+
+        let row = `<tr>
+            <td><strong>${a.nombre}</strong></td>
+            <td>
+                <span style="color:var(--ck-orange); font-weight:bold;">${a.punto}</span>
+                ${metrics.esPayJoy ? '<span class="tag-credit">PAYJOY</span>' : ''}
+            </td>
+            <td><strong>$${metrics.ventaSemanal.toLocaleString()}</strong></td>
+            <td>$${metaDinero.toLocaleString()}</td>
+            <td>${pjTexto}</td>
+            <td>
+                <strong>${pctDinero}%</strong>
+                <div class="progress-bar" style="margin-top:4px;">
+                    <div class="progress-fill" style="width: ${Math.min(pctDinero, 100)}%;"></div>
+                </div>
+            </td>
+            <td>${statusTag}</td>
+            <td>${comisionHtml}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function renderCuadroDiario() {
+    let tbody = document.getElementById("bodyCuadroAsignacion");
+    tbody.innerHTML = "";
+
+    datosBase.forEach(s => {
+        let valAsesor = asignacionesCuadro[s.nombre] || "";
+        let logoHtml = s.logo 
+            ? `<img src="${s.logo}" style="height:20px; width:30px; object-fit:contain; vertical-align:middle; margin-right:6px;" crossOrigin="anonymous" onerror="this.style.display='none'">` 
+            : '';
+
+        let row = `<tr>
+            <td>
+                ${logoHtml}
+                <strong style="color:#ea580c; font-size:0.85rem;">${s.nombre}</strong>
+            </td>
+            <td>
+                <input type="text" placeholder="Asignar asesor(es)..." value="${valAsesor}" 
+                       onchange="actualizarAsignacionPunto('${s.nombre}', this.value)">
+            </td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function actualizarAsignacionPunto(nombrePunto, valor) {
+    asignacionesCuadro[nombrePunto] = valor;
+    guardarEstadoCuadroDiario();
+}
+
+function guardarEstadoCuadroDiario() {
+    let estadoObjeto = {
+        descansos: document.getElementById("cuadroDescansos").value,
+        sucursalesLimp: document.getElementById("cuadroSucursalesLimp").value,
+        horarioLimp: document.getElementById("cuadroHorarioLimp").value,
+        instruccionesLimp: document.getElementById("cuadroInstruccionesLimp").value,
+        asignaciones: asignacionesCuadro
+    };
+
+    db.ref('cuadroTrabajoDiario').set(estadoObjeto)
+        .then(() => mostrarToast("¡Cuadro de trabajo sincronizado!"))
+        .catch(e => console.error("Error al guardar cuadro: ", e));
+}
+
+function exportarCuadroImagen() {
+    const areaCaptura = document.getElementById("areaCapturaCuadro");
+    mostrarToast("Generando tarjeta en HD...");
+
+    html2canvas(areaCaptura, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff"
+    }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `Cuadro_Trabajo_RioGrande_${obtenerFechaFormateada().replace(/\//g, '-')}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        mostrarToast("¡Imagen lista para WhatsApp!");
+    });
+}
+
+function renderGestionAsesores() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+    let tbody = document.querySelector("#tablaConfigAsesores tbody");
+    tbody.innerHTML = "";
+
+    plantillaAsesores.forEach((a, index) => {
+        let row = `<tr>
+            <td><input type="text" value="${a.nombre}" onchange="actualizarAsesorProp(${index}, 'nombre', this.value)"></td>
+            <td>
+                <select onchange="actualizarAsesorProp(${index}, 'punto', this.value)">
+                    ${datosBase.map(s => `<option value="${s.nombre}" ${s.nombre === a.punto ? 'selected' : ''}>${s.nombre}</option>`).join('')}
+                </select>
+            </td>
+            <td><input type="number" value="${a.metaBono || 10000}" onchange="actualizarAsesorProp(${index}, 'metaBono', parseFloat(this.value)||0)"></td>
+            <td><input type="number" placeholder="Calculado" value="${a.ajusteVenta !== undefined ? a.ajusteVenta : ''}" onchange="actualizarAsesorProp(${index}, 'ajusteVenta', this.value)"></td>
+            <td><input type="number" placeholder="Calculado" value="${a.ajustePJ !== undefined ? a.ajustePJ : ''}" onchange="actualizarAsesorProp(${index}, 'ajustePJ', this.value)"></td>
+            <td><button class="btn-delete" onclick="eliminarAsesorGeneral(${index})">🗑️ Eliminar</button></td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+function agregarAsesorGeneral() {
+    let nombre = document.getElementById("nuevoNombreAsesor").value.trim();
+    let punto = document.getElementById("nuevoPuntoAsesor").value;
+    let meta = parseFloat(document.getElementById("nuevaMetaBono").value) || 10000;
+
+    if (!nombre || !punto) {
+        alert("Por favor ingresa el nombre y selecciona el punto de venta.");
+        return;
+    }
+
+    plantillaAsesores.push({ nombre: nombre, punto: punto, metaBono: meta });
+    db.ref('plantillaAsesores').set(plantillaAsesores)
+        .then(() => {
+            mostrarToast("Asesor agregado.");
+            document.getElementById("nuevoNombreAsesor").value = "";
+            renderGestionAsesores();
+            renderBonoAsesores();
+        });
+}
+
+function actualizarAsesorProp(index, prop, valor) {
+    plantillaAsesores[index][prop] = valor;
+    db.ref('plantillaAsesores').set(plantillaAsesores);
+    mostrarToast("Cambio guardado.");
+}
+
+function eliminarAsesorGeneral(index) {
+    if (confirm("¿Eliminar este asesor de la plantilla?")) {
+        plantillaAsesores.splice(index, 1);
+        db.ref('plantillaAsesores').set(plantillaAsesores);
+        renderGestionAsesores();
+        renderBonoAsesores();
+        mostrarToast("Asesor eliminado.");
+    }
+}
+
+function actualizarAtómico(id, campo, valor) {
+    db.ref(`puntos_ventas/${id}/${campo}`).set(valor)
+        .then(() => {
+            mostrarToast("¡Sincronizado!");
+            if (campo === 'asesor') {
+                renderBonoAsesores();
+            }
+        })
+        .catch(e => alert("Error: " + e.message));
+}
+
+function renderHistóricoDetallado() {
+    if (!usuarioActual || usuarioActual.id !== "admin") return;
+
+    let selectMes = document.getElementById("selectFiltroMes");
+    let mesSeleccionado = selectMes.value;
+
+    let mesesUnicos = [...new Set(historialCortes.map(h => h.mesNombre || obtenerNombreMesActual()))];
+    if (mesesUnicos.length === 0) {
+        mesesUnicos.push(obtenerNombreMesActual());
+    }
+
+    selectMes.innerHTML = "";
+    mesesUnicos.forEach(mes => {
+        selectMes.innerHTML += `<option value="${mes}" ${mes === mesSeleccionado ? 'selected' : ''}>${mes}</option>`;
+    });
+
+    mesSeleccionado = selectMes.value || obtenerNombreMesActual();
+    let totalSucursalesBase = [...datosBase].sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+    let thead = document.getElementById("headersHistorico");
+    thead.innerHTML = `<th>Fecha / Semana</th>`;
+    totalSucursalesBase.forEach(s => { thead.innerHTML += `<th>${s.nombre}</th>`; });
+    thead.innerHTML += `<th style="background:#0c4a6e; color:#38bdf8;">VENTA GLOBAL DÍA</th>`;
+    thead.innerHTML += `<th style="background:#831843; color:#f472b6;">TOTAL LÍNEAS PAYJOY</th>`;
+    thead.innerHTML += `<th style="background:#0f172a;">ACCIÓN</th>`;
+
+    let tbody = document.querySelector("#tablaHistoricoDetallado tbody");
+    tbody.innerHTML = "";
+
+    let cortesDelMes = historialCortes.filter(h => (h.mesNombre || obtenerNombreMesActual()) === mesSeleccionado || !selectMes.value);
+    
+    let sumaGranTotalMes = 0;
+    let sumaGranPayJoyMes = 0;
+    let sumaPorPunto = {};
+    let sumaPJPorPunto = {};
+    totalSucursalesBase.forEach(s => { sumaPorPunto[s.nombre] = 0; sumaPJPorPunto[s.nombre] = 0; });
+
+    cortesDelMes.forEach(corte => {
+        let semNum = corte.numSemana || obtenerNumeroSemana(parseFechaMX(corte.fecha));
+        let row = `<tr><td><strong>${corte.fecha}</strong><br><span style="font-size:0.75rem; color:#60a5fa;">Semana ${semNum}</span></td>`;
+        let totalGlobalDia = 0, totalPJDia = 0;
+
+        totalSucursalesBase.forEach(s => {
+            let ventaDiaTienda = (corte.desglose && corte.desglose[s.nombre] !== undefined) ? parseFloat(corte.desglose[s.nombre]) : 0;
+            let pjDiaTienda = (corte.desglosePayJoy && corte.desglosePayJoy[s.nombre] !== undefined) ? parseInt(corte.desglosePayJoy[s.nombre]) : 0;
+
+            totalGlobalDia += ventaDiaTienda;
+            totalPJDia += pjDiaTienda;
+            sumaPorPunto[s.nombre] += ventaDiaTienda;
+            sumaPJPorPunto[s.nombre] += pjDiaTienda;
+
+            row += `<td>
+                <div class="hist-cell">
+                    <input type="number" class="input-hist-venta" value="${ventaDiaTienda}" 
+                           onchange="actualizarHistoricoAccion('${corte.fecha}', '${s.nombre}', 'venta', parseFloat(this.value)||0)">
+                    <input type="number" class="input-hist-pj" value="${pjDiaTienda}" 
+                           onchange="actualizarHistoricoAccion('${corte.fecha}', '${s.nombre}', 'payjoy', parseInt(this.value)||0)">
+                </div>
+            </td>`;
+        });
+
+        sumaGranTotalMes += totalGlobalDia;
+        sumaGranPayJoyMes += totalPJDia;
+
+        row += `<td style="background:rgba(2, 132, 199, 0.15); font-weight:800; color:#38bdf8;">$${totalGlobalDia.toLocaleString()}</td>`;
+        row += `<td style="background:rgba(236, 72, 153, 0.15); font-weight:800; color:#f472b6;">${totalPJDia} líneas</td>`;
+        row += `<td><button class="btn-delete" onclick="eliminarCorteHistorico('${corte.fecha}')">🗑️ Borrar</button></td></tr>`;
+        tbody.innerHTML += row;
+    });
+
+    // Fila de acumulado mensual general al pie de la tabla
+    let footerRow = `<tr style="background:#1e293b; border-top: 2px solid var(--ck-orange);">
+        <td><strong>TOTAL ACUMULADO MES</strong></td>`;
+    totalSucursalesBase.forEach(s => {
+        footerRow += `<td style="font-size:0.8rem; font-weight:800; color:#38bdf8;">
+            $${sumaPorPunto[s.nombre].toLocaleString()}<br>
+            <span style="color:#f472b6;">${sumaPJPorPunto[s.nombre]} PJ</span>
+        </td>`;
+    });
+    footerRow += `<td style="font-size:0.95rem; font-weight:800; color:#34d399;">$${sumaGranTotalMes.toLocaleString()}</td>`;
+    footerRow += `<td style="font-size:0.95rem; font-weight:800; color:#f472b6;">${sumaGranPayJoyMes} líneas</td>`;
+    footerRow += `<td></td></tr>`;
+    tbody.innerHTML += footerRow;
+}
+
+function actualizarHistoricoAccion(fechaStr, nombrePunto, tipoCampo, nuevoValor) {
+    let corte = historialCortes.find(h => h.fecha === fechaStr);
+    if (!corte) {
+        let semNum = obtenerNumeroSemana(parseFechaMX(fechaStr));
+        let p = fechaStr.split('/');
+        let fechaReg = new Date(p[2], p[1] - 1, p[0]);
+        let mName = fechaReg.toLocaleDateString('es-ES', { month: 'long' });
+        let mesNombreDinamico = `${mName.charAt(0).toUpperCase() + mName.slice(1)} de ${fechaReg.getFullYear()}`;
+
+        corte = {
+            fecha: fechaStr,
+            mesNombre: mesNombreDinamico,
+            numSemana: semNum,
+            desglose: {},
+            desglosePayJoy: {}
+        };
+        historialCortes.push(corte);
+    }
+
+    if (tipoCampo === 'venta') {
+        if (!corte.desglose) corte.desglose = {};
+        corte.desglose[nombrePunto] = nuevoValor;
+    } else if (tipoCampo === 'payjoy') {
+        if (!corte.desglosePayJoy) corte.desglosePayJoy = {};
+        corte.desglosePayJoy[nombrePunto] = nuevoValor;
+    }
+
+    db.ref('historialCortes').set(historialCortes)
+        .then(() => {
+            mostrarToast("¡Registro histórico actualizado!");
+            renderBonoAsesores();
+        });
+}
+
+function eliminarCorteHistorico(fechaStr) {
+    if (confirm(`¿Estás seguro de eliminar el registro del día ${fechaStr}?`)) {
+        historialCortes = historialCortes.filter(h => h.fecha !== fechaStr);
+        db.ref('historialCortes').set(historialCortes)
+            .then(() => {
+                renderHistóricoDetallado();
+                renderBonoAsesores();
+                mostrarToast("Registro eliminado.");
+            });
+    }
+}
+
+function guardarYReiniciarDiaGeneral() {
+    if (!confirm("⚠️ ¿Estás seguro de hacer el corte diario, guardar en el histórico y reiniciar todas las ventas a $0?")) return;
+
+    let fechaHoyStr = obtenerFechaFormateada();
+    let semNum = obtenerNumSemanaActual();
+    let mesFormateado = obtenerNombreMesActual();
+
+    let desgloseV = {}, desglosePJ = {}, desgloseA = {}, desgloseAsesoresVentas = {};
+    datosBase.forEach(s => {
+        let actual = sucursales.find(item => item.id === s.id);
+        desgloseV[s.nombre] = actual ? actual.venta : 0;
+        desglosePJ[s.nombre] = actual ? actual.payjoy : 0;
+        desgloseA[s.nombre] = actual ? (actual.asesor || "").trim() : "";
+        if (actual && actual.ventasAsesores) {
+            desgloseAsesoresVentas[s.nombre] = actual.ventasAsesores;
+        }
+    });
+
+    historialCortes = historialCortes.filter(h => h.fecha !== fechaHoyStr);
+    historialCortes.push({
+        fecha: fechaHoyStr,
+        mesNombre: mesFormateado,
+        numSemana: semNum,
+        desglose: desgloseV,
+        desglosePayJoy: desglosePJ,
+        desgloseAsesores: desgloseA,
+        desgloseAsesoresVentas: desgloseAsesoresVentas
+    });
+
+    db.ref('historialCortes').set(historialCortes);
+
+    datosBase.forEach(s => {
+        db.ref(`puntos_ventas/${s.id}/venta`).set(0);
+        db.ref(`puntos_ventas/${s.id}/payjoy`).set(0);
+        db.ref(`puntos_ventas/${s.id}/ventasAsesores`).set(null);
+    });
+
+    mostrarToast("¡Corte diario guardado y tablero reiniciado!");
+}
+
+function renderFormularioPasswords() {
+    let container = document.getElementById("passwordsContainer");
+    container.innerHTML = "";
+
+    Object.keys(credenciales).forEach(k => {
+        let item = credenciales[k];
+        let nombreSuc = k === "admin" ? "Administrador General" : (sucursales.find(s => s.id == item.id)?.nombre || `Sucursal ${k}`);
+        
+        let card = `<div class="pass-card">
+            <label>${nombreSuc} (Usuario: <code>${k}</code>)</label>
+            <input type="text" id="passInput_${k}" value="${item.pass}">
+        </div>`;
+        container.innerHTML += card;
+    });
+}
+
+function guardarNuevasContrasenas() {
+    Object.keys(credenciales).forEach(k => {
+        let inputVal = document.getElementById(`passInput_${k}`).value.trim();
+        if (inputVal) {
+            credenciales[k].pass = inputVal;
+        }
+    });
+
+    db.ref('credenciales').set(credenciales)
+        .then(() => mostrarToast("¡Contraseñas actualizadas con éxito!"))
+        .catch(e => alert("Error al guardar contraseñas: " + e.message));
+}
+
+function mostrarQR() {
+    document.getElementById("modalQR").style.display = "flex";
+    let qrContainer = document.getElementById("qrcode");
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, {
+        text: window.location.href,
+        width: 180,
+        height: 180
+    });
+}
+
+function cerrarQR() {
+    document.getElementById("modalQR").style.display = "none";
+}
+
+function mostrarToast(mensaje) {
+    let toast = document.getElementById("toast");
+    toast.innerText = mensaje;
+    toast.className = "show";
+    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+}
+</script>
+</body>
+</html>
