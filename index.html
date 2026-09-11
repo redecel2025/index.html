@@ -1862,6 +1862,255 @@ function mostrarToast(mensaje) {
     toast.className = "show";
     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
 }
+<!-- ====================================================================== -->
+<!-- 1. LIBRERÍA DE CONFETI (Colocar justo antes de cerrar la etiqueta </body>) -->
+<!-- ====================================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+<!-- ====================================================================== -->
+<!-- 2. BOTÓN DE MENÚ (Agregar en tu barra de navegación lateral) -->
+<!-- ====================================================================== -->
+<button onclick="mostrarSeccion('seccionComparativoVentas')" class="menu-btn" id="btnComparativoVentas">
+  <i class="fas fa-chart-line"></i> Comparativo de Ventas
+</button>
+
+<!-- ====================================================================== -->
+<!-- 3. ESTRUCTURA HTML DEL MÓDULO (Agregar junto a tus otras secciones) -->
+<!-- ====================================================================== -->
+<div id="seccionComparativoVentas" class="seccion" style="display: none;">
+  <h2>Desempeño y Comparativo Mensual</h2>
+  
+  <!-- PANEL DE ADMINISTRADOR -->
+  <div id="panelAdminMetas" style="display: none;" class="admin-card">
+    <h3>⚙️ Configuración de Metas Mensuales</h3>
+    <div class="form-group-grid">
+      <select id="selectSucursalMeta" class="input-moderno">
+        <option value="americas">Américas</option>
+        <option value="san_lorenzo">San Lorenzo</option>
+        <option value="monumental">Monumental</option>
+        <option value="rio_1">Río 1</option>
+        <option value="rio_3">Río 3</option>
+        <option value="rio_5">Río 5</option>
+        <option value="rio_6">Río 6</option>
+        <option value="toska_1">Toska 1</option>
+        <option value="toska_2">Toska 2</option>
+        <option value="shota">Shota</option>
+        <option value="cocos">Cocos</option>
+        <option value="miel">Miel</option>
+        <option value="papis">Papis</option>
+      </select>
+      <input type="month" id="inputMesMeta" class="input-moderno">
+      <input type="number" id="inputMetaMensual" placeholder="Meta del mes actual ($)" class="input-moderno">
+      <input type="number" id="inputVentaAnoPasado" placeholder="Venta mismo mes año pasado ($)" class="input-moderno">
+    </div>
+    <div class="form-group-full mt-10">
+      <input type="text" id="inputMensajeMeta" placeholder="Mensaje de felicitación al llegar a la meta (Opcional)" class="input-moderno">
+      <button onclick="guardarMetasMensuales()" class="btn-guardar-meta">Guardar Configuración</button>
+    </div>
+  </div>
+
+  <!-- TABLERO VISUAL DEL ASESOR -->
+  <div id="tableroAsesorVentas" class="dashboard-card">
+    <h3 class="titulo-tablero">Progreso de Ventas - <span id="nombreSucursalVista" class="resalte-sucursal"></span></h3>
+    
+    <!-- Contenedor del Mensaje de Felicitación (Oculto por defecto) -->
+    <div id="mensajeFelicidadesBox" class="mensaje-exito" style="display: none;">
+      🏆 <span id="textoMensajeFelicidades">¡Felicidades, meta superada!</span> 🏆
+    </div>
+
+    <!-- Métrica 1: Avance de Meta -->
+    <div class="metrica-box">
+      <h4>Avance vs Meta Mensual</h4>
+      <div class="progress-container">
+        <div id="barraMeta" class="progress-bar bg-success" style="width: 0%;">0%</div>
+      </div>
+      <div class="stats-text">
+        <span>Venta Actual: $<span id="ventaActual">0.00</span></span>
+        <span>Meta: $<span id="metaMensualDisplay">0.00</span></span>
+      </div>
+    </div>
+
+    <!-- Métrica 2: Comparativo Año Pasado -->
+    <div class="metrica-box">
+      <h4>Comparativo vs Año Pasado</h4>
+      <div class="progress-container">
+        <div id="barraAnoPasado" class="progress-bar bg-info" style="width: 0%;">0%</div>
+      </div>
+      <div class="stats-text">
+        <span>Venta Actual: $<span id="ventaActualComp">0.00</span></span>
+        <span>Venta Año Pasado: $<span id="ventaAnoPasadoDisplay">0.00</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====================================================================== -->
+<!-- 4. ESTILOS CSS (Agregar en tu etiqueta <style> o archivo CSS) -->
+<!-- ====================================================================== -->
+<style>
+  .admin-card { background-color: #f8f9fa; border-left: 5px solid #343a40; padding: 20px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .dashboard-card { background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+  .form-group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+  .form-group-full { width: 100%; margin-top: 15px; }
+  .input-moderno { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; font-size: 14px; box-sizing: border-box; }
+  .btn-guardar-meta { margin-top: 10px; background-color: #0d6efd; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+  .btn-guardar-meta:hover { background-color: #0b5ed7; }
+  .titulo-tablero { text-align: center; color: #333; margin-bottom: 20px; }
+  .resalte-sucursal { color: #0d6efd; text-transform: uppercase; }
+  .metrica-box { padding: 15px 0; border-bottom: 1px solid #eee; }
+  .metrica-box:last-child { border-bottom: none; }
+  .progress-container { width: 100%; background-color: #e9ecef; border-radius: 20px; height: 28px; margin: 12px 0; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+  .progress-bar { height: 100%; text-align: center; line-height: 28px; color: white; font-weight: bold; transition: width 0.8s ease-in-out, background-color 0.5s ease; white-space: nowrap; }
+  .bg-success { background-color: #28a745; }
+  .bg-info { background-color: #17a2b8; }
+  .stats-text { display: flex; justify-content: space-between; font-size: 0.95em; color: #495057; font-weight: 600; }
+  .mensaje-exito { background: linear-gradient(45deg, #ffd700, #ffb300); color: #000; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 1.1em; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); animation: parpadeo 1.5s infinite alternate; }
+  @keyframes parpadeo { from { opacity: 0.9; } to { opacity: 1; transform: scale(1.02); } }
+</style>
+
+<!-- ====================================================================== -->
+<!-- 5. LÓGICA JAVASCRIPT Y FIREBASE (Agregar en tu etiqueta <script>) -->
+<!-- ====================================================================== -->
+<script>
+  // Control de vista según rol
+  function verificarRolParaComparativo(rolUsuario) {
+    if(rolUsuario === 'admin') {
+      document.getElementById('panelAdminMetas').style.display = 'block';
+    } else {
+      document.getElementById('panelAdminMetas').style.display = 'none';
+    }
+  }
+
+  // Guardar configuración y mensaje en Firebase
+  function guardarMetasMensuales() {
+    const sucursal = document.getElementById('selectSucursalMeta').value;
+    const mes = document.getElementById('inputMesMeta').value;
+    const meta = parseFloat(document.getElementById('inputMetaMensual').value);
+    const ventaPasada = parseFloat(document.getElementById('inputVentaAnoPasado').value);
+    const mensaje = document.getElementById('inputMensajeMeta').value || "¡Felicidades, meta superada!";
+
+    if(!sucursal || !mes || isNaN(meta) || isNaN(ventaPasada)) {
+      alert("Por favor, llena los montos y selecciona un mes.");
+      return;
+    }
+
+    // Ruta de Firebase para guardar (Asegúrate de que 'db' es tu variable de base de datos)
+    db.ref('metas_mensuales/' + sucursal + '/' + mes).set({
+      meta_mensual: meta,
+      venta_ano_pasado: ventaPasada,
+      mensaje_felicitacion: mensaje
+    }).then(() => {
+      alert("Metas y mensaje guardados exitosamente para " + sucursal.toUpperCase());
+    }).catch((error) => {
+      console.error("Error al guardar: ", error);
+    });
+  }
+
+  // Escuchar ventas en tiempo real (Llama a esta función al iniciar sesión el asesor)
+  function escucharYSumarVentas(sucursal) {
+    const fechaActual = new Date();
+    const ano = fechaActual.getFullYear();
+    const mes = String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesActualStr = `${ano}-${mes}`; 
+
+    // Ruta donde se guardan las ventas diarias (Ajusta si se llama diferente en tu Firebase)
+    const refVentasMes = db.ref(`ventas_diarias/${sucursal}/${mesActualStr}`);
+
+    refVentasMes.on('value', (snapshot) => {
+      let totalAcumuladoMes = 0;
+      
+      snapshot.forEach((diaSnapshot) => {
+        const datosDia = diaSnapshot.val();
+        // Ajusta 'monto_venta' al nombre exacto de la variable de venta en tu BD
+        if (datosDia && datosDia.monto_venta) {
+          totalAcumuladoMes += parseFloat(datosDia.monto_venta);
+        }
+      });
+      
+      cargarTableroVentas(sucursal, mesActualStr, totalAcumuladoMes);
+    });
+  }
+
+  // Función del efecto Confeti
+  function lanzarConfetiMetaCumplida() {
+    if (typeof confetti !== 'undefined') {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6, x: 0.2 }, colors: ['#28a745', '#ffd700', '#ffffff'], zIndex: 9999 });
+      setTimeout(() => { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6, x: 0.8 }, colors: ['#28a745', '#ffd700', '#ffffff'], zIndex: 9999 }); }, 250);
+      setTimeout(() => { confetti({ particleCount: 150, spread: 100, origin: { y: 0.1, x: 0.5 }, colors: ['#28a745', '#ffd700', '#ffffff'], zIndex: 9999 }); }, 500);
+    }
+  }
+
+  // Cargar visualmente el tablero para el asesor
+  let confetiYaLanzadoEsteMes = false; // Evita que explote en cada nueva venta si ya pasaron la meta
+
+  function cargarTableroVentas(sucursal, mesActualStr, totalVentaActual) {
+    document.getElementById('nombreSucursalVista').textContent = sucursal;
+    
+    db.ref('metas_mensuales/' + sucursal + '/' + mesActualStr).once('value', (snapshot) => {
+      const datos = snapshot.val();
+      
+      if(datos) {
+        const meta = datos.meta_mensual;
+        const ventaPasada = datos.venta_ano_pasado;
+        const mensajeTexto = datos.mensaje_felicitacion || "¡Felicidades, meta superada!";
+        
+        // Actualizar números en pantalla
+        document.getElementById('ventaActual').textContent = totalVentaActual.toLocaleString('es-MX');
+        document.getElementById('ventaActualComp').textContent = totalVentaActual.toLocaleString('es-MX');
+        document.getElementById('metaMensualDisplay').textContent = meta.toLocaleString('es-MX');
+        document.getElementById('ventaAnoPasadoDisplay').textContent = ventaPasada.toLocaleString('es-MX');
+        
+        let porcentajeMeta = (totalVentaActual / meta) * 100;
+        let porcentajeAnoPasado = (totalVentaActual / ventaPasada) * 100;
+        
+        let anchoBarraMeta = porcentajeMeta > 100 ? 100 : porcentajeMeta;
+        let anchoBarraAnoPasado = porcentajeAnoPasado > 100 ? 100 : porcentajeAnoPasado;
+        
+        const barraMetaEl = document.getElementById('barraMeta');
+        const barraAnoPasadoEl = document.getElementById('barraAnoPasado');
+        const cajaMensaje = document.getElementById('mensajeFelicidadesBox');
+
+        // Evaluar si llegaron a la meta
+        if(porcentajeMeta >= 100) {
+          // Estilo Dorado de campeones
+          barraMetaEl.classList.remove('bg-success');
+          barraMetaEl.style.backgroundColor = '#ffd700'; 
+          barraMetaEl.style.color = '#000';
+          
+          // Mostrar mensaje del administrador
+          document.getElementById('textoMensajeFelicidades').textContent = mensajeTexto;
+          cajaMensaje.style.display = 'block';
+
+          // Lanzar confeti (solo una vez por sesión para no ser intrusivo)
+          if(!confetiYaLanzadoEsteMes) {
+            lanzarConfetiMetaCumplida();
+            confetiYaLanzadoEsteMes = true;
+          }
+        } else {
+          // Estilo normal (Verde)
+          barraMetaEl.classList.add('bg-success');
+          barraMetaEl.style.backgroundColor = ''; 
+          barraMetaEl.style.color = 'white';
+          cajaMensaje.style.display = 'none';
+          confetiYaLanzadoEsteMes = false; // Se resetea si caen por debajo (ej. cancelación de venta)
+        }
+
+        // Evaluar comparativo de año pasado (Cambia a verde si superan el año pasado)
+        if(porcentajeAnoPasado >= 100) {
+          barraAnoPasadoEl.classList.replace('bg-info', 'bg-success');
+        } else {
+          barraAnoPasadoEl.classList.replace('bg-success', 'bg-info');
+        }
+
+        // Animar barras
+        barraMetaEl.style.width = anchoBarraMeta + '%';
+        barraMetaEl.textContent = porcentajeMeta.toFixed(1) + '%';
+        barraAnoPasadoEl.style.width = anchoBarraAnoPasado + '%';
+        barraAnoPasadoEl.textContent = porcentajeAnoPasado.toFixed(1) + '%';
+      }
+    });
+  }
+</script>
 </script>
 </body>
 </html>
